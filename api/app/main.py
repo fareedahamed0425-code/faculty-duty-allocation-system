@@ -89,14 +89,31 @@ for candidate in static_candidates:
 if static_dir and os.path.exists(os.path.join(static_dir, "assets")):
     app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
 
+@app.get("/")
+@app.get("/api")
+@app.get("/api/index.py")
+async def root_index():
+    if static_dir:
+        index_file = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+    return JSONResponse(status_code=200, content={"message": "Faculty Duty Allocation System Backend is Running"})
+
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
-    if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+    clean_path = full_path.strip("/")
+    if clean_path.startswith("api/index.py/"):
+        clean_path = clean_path[len("api/index.py/"):]
+    elif clean_path == "api/index.py" or clean_path == "api" or clean_path == "":
+        clean_path = ""
+    
+    # Do not intercept API endpoints
+    if clean_path.startswith("api/v1") or clean_path.startswith("docs") or clean_path.startswith("openapi.json"):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
     
     if static_dir:
-        direct_file = os.path.join(static_dir, full_path)
-        if full_path and os.path.exists(direct_file) and os.path.isfile(direct_file):
+        direct_file = os.path.join(static_dir, clean_path)
+        if clean_path and os.path.exists(direct_file) and os.path.isfile(direct_file):
             return FileResponse(direct_file)
         
         index_file = os.path.join(static_dir, "index.html")
