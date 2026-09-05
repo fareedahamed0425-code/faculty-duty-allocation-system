@@ -69,6 +69,42 @@ def health_check():
         "model": settings.NVIDIA_MODEL
     }
 
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Static files & SPA Frontend serving
+static_candidates = [
+    os.path.join(os.path.dirname(__file__), "static"),
+    os.path.join(os.path.dirname(__file__), "..", "static"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"),
+]
+
+static_dir = None
+for candidate in static_candidates:
+    if os.path.exists(candidate) and os.path.isdir(candidate):
+        static_dir = os.path.abspath(candidate)
+        break
+
+if static_dir and os.path.exists(os.path.join(static_dir, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+    
+    if static_dir:
+        direct_file = os.path.join(static_dir, full_path)
+        if full_path and os.path.exists(direct_file) and os.path.isfile(direct_file):
+            return FileResponse(direct_file)
+        
+        index_file = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+            
+    return JSONResponse(status_code=200, content={"message": "Faculty Duty Allocation System Backend is Running"})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
