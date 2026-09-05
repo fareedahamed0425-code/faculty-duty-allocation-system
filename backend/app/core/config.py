@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./faculty_scheduler.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite:////tmp/faculty_scheduler.db" if os.getenv("VERCEL") else "sqlite:///./faculty_scheduler.db"
+    )
     
     # Scheduling Non-negotiable Institutional Constraints (Configurable defaults)
     MAX_WEEKLY_SUBSTITUTIONS: int = int(os.getenv("MAX_WEEKLY_SUBSTITUTIONS", "4"))
