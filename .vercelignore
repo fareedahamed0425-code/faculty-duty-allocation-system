@@ -1,0 +1,10 @@
+# Ignore backend and server files on Vercel frontend deployment
+backend/
+.venv/
+*.py
+*.db
+*.sqlite3
+Dockerfile
+docker-compose.yml
+run_app.py
+sample_timetable_import.csv
