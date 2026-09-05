@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isSidebarCollapsed,
   onToggleSidebar,
 }) => {
-  const { user, logout, demoSwitchRole } = useAuth();
+  const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -149,32 +149,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Right actions: Demo switcher, AI button, Date, Notifications, User */}
+          {/* Right actions: AI button, Date, Notifications, User */}
           <div className="flex items-center space-x-1.5 sm:space-x-3">
-            {/* Quick Demo Role Switcher (Desktop only) */}
-            <div className="hidden xl:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-              <span className="text-slate-400 px-2 font-medium text-[11px]">Role:</span>
-              {(['ADMIN', 'FACULTY', 'DEAN', 'HOD'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => {
-                    demoSwitchRole(r);
-                    if (r === 'FACULTY') setActiveTab('faculty-portal');
-                    else if (r === 'HOD') setActiveTab('hod-dashboard');
-                    else if (r === 'DEAN') setActiveTab('dean-dashboard');
-                    else setActiveTab('dashboard');
-                  }}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-xs cursor-pointer ${
-                    user?.role?.name === r
-                      ? 'bg-white text-[#2582a1] shadow-xs border border-slate-200 font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-
             {/* AI Assistant Launch Button */}
             <button
               onClick={onOpenAI}

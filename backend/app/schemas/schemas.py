@@ -36,6 +36,18 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
+class UserRoleUpdate(BaseModel):
+    role_name: str
+    department_id: Optional[int] = None
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+class FirebaseSyncRequest(BaseModel):
+    email: str
+    full_name: Optional[str] = None
+    role_name: Optional[str] = None
+
 # --- Departments, Subjects & Classes ---
 class DepartmentOut(BaseModel):
     id: int

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
-import { MOCK_DASHBOARD_STATS, MOCK_FACULTY_LIST } from '../api/mockData';
 import { DashboardStats, Faculty } from '../types';
 import {
   GraduationCap,
@@ -33,9 +32,8 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
         ]);
         setStats(statsRes.data);
         setFaculty(facRes.data);
-      } catch {
-        setStats(MOCK_DASHBOARD_STATS);
-        setFaculty(MOCK_FACULTY_LIST);
+      } catch (err) {
+        console.warn('Could not fetch Dean dashboard data:', err);
       } finally {
         setIsLoading(false);
       }

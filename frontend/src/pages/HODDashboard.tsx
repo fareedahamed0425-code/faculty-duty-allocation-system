@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
-import { MOCK_FACULTY_LIST, MOCK_DUTIES, MOCK_TIMETABLE_ENTRIES } from '../api/mockData';
 import { Faculty, SubstitutionDuty, TimetableEntry } from '../types';
 import {
   Building2,
@@ -39,10 +38,8 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI
         setFaculty(facRes.data);
         setDuties(dutiesRes.data);
         setTimetable(ttRes.data);
-      } catch {
-        setFaculty(MOCK_FACULTY_LIST);
-        setDuties(MOCK_DUTIES);
-        setTimetable(MOCK_TIMETABLE_ENTRIES);
+      } catch (err) {
+        console.warn('Could not fetch HOD dashboard data:', err);
       } finally {
         setIsLoading(false);
       }

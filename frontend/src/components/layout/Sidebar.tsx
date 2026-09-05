@@ -49,6 +49,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: 'Admin'
     },
     { 
+      id: 'users', 
+      label: 'User & Role Management', 
+      shortLabel: 'Users',
+      icon: Users, 
+      visible: isAdmin,
+      badge: 'Roles'
+    },
+    { 
       id: 'hod-dashboard', 
       label: 'Department Overview', 
       shortLabel: 'HOD',

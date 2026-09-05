@@ -1,12 +1,13 @@
 from fastapi import APIRouter
 from app.api.v1 import (
-    auth, faculty, timetables, absences, substitutions, reports,
+    auth, users, faculty, timetables, absences, substitutions, reports,
     notifications, system_rules, audit, ai
 )
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(users.router, prefix="/users", tags=["User Management"])
 api_router.include_router(faculty.router, prefix="/faculty", tags=["Faculty Management"])
 api_router.include_router(timetables.router, prefix="/timetables", tags=["Timetables"])
 api_router.include_router(absences.router, prefix="/absences", tags=["Absences"])

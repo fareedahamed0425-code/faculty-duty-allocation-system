@@ -52,6 +52,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
       badge: 'Admin',
     },
     {
+      id: 'users',
+      label: 'User & Role Management',
+      icon: Users,
+      visible: isAdmin,
+      badge: 'Roles',
+    },
+    {
       id: 'hod-dashboard',
       label: 'Department Overview',
       icon: Building2,

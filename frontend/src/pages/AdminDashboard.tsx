@@ -123,6 +123,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            onClick={() => onNavigate('users')}
+            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <Users className="w-3.5 h-3.5 text-[#fdb931]" />
+            <span>Manage Users & Roles</span>
+          </button>
+          <button
             onClick={() => setIsAbsenceModalOpen(true)}
             className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
