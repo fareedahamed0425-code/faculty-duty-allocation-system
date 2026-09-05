@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 # --- Auth & User ---
 class Token(BaseModel):
@@ -72,7 +72,7 @@ class ClassSectionOut(BaseModel):
 class FacultyCreate(BaseModel):
     faculty_id: str
     name: str
-    email: EmailStr
+    email: str
     department_id: int
     designation: str = "Assistant Professor"
     role_id: Optional[int] = None
