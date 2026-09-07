@@ -45,7 +45,7 @@ The automated allocation engine solves substitution requirements using a strict 
 
 ### 👥 2. User Registry & Role Governance
 * **Multi-Role Assignment:** Assign and change user roles across **ADMIN**, **DEAN**, **HOD**, **PC** (Program Coordinator), **COMMITTEE_MEMBER**, and **FACULTY**.
-* **Department Affiliation:** Inline re-assignment across academic departments (CSE, ECE, MECH, MATH).
+* **Department Affiliation:** Inline re-assignment across academic departments (AIDS, AIML, CSE, CS, CC, AIHC).
 * **Automatic Rule Synchronization:** Toggling role assignments instantly updates Rule 4 exemption and Rule 7 substitution eligibility flags across the live database.
 * **Faculty Directory:** Detailed profile inspection including designation, official email, phone, weekly duty counters, and timetable schedules.
 
@@ -115,7 +115,7 @@ postgresql://neondb_owner:npg_***@ep-orange-violet-az5k58bf-pooler.c-3.ap-southe
 ### Relational Schema (16 Tables)
 1. **`roles`**: System permission tiers (ADMIN, DEAN, HOD, PC, COMMITTEE_MEMBER, FACULTY).
 2. **`users`**: Institutional user accounts with bcrypt-hashed credentials and role links.
-3. **`departments`**: Academic divisions (CSE, ECE, MECH, MATH).
+3. **`departments`**: Academic divisions (AIDS, AIML, CSE, CS, CC, AIHC).
 4. **`subjects`**: Course catalog with credits and department associations.
 5. **`class_sections`**: Student cohorts and batches across academic years.
 6. **`faculty`**: Faculty profiles, designations, subject expertise, weekly duty counters, and exemption flags.

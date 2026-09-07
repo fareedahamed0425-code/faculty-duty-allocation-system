@@ -111,7 +111,23 @@ def reset_to_clean_state():
         for r_dict in rules_data:
             db.add(SystemRule(**r_dict, updated_by="System Initializer"))
 
-        # 3. Primary Admin User
+        # 3. Base Institutional Departments
+        departments_data = [
+            {"code": "AIDS", "name": "Artificial Intelligence and Data Science", "description": "Department of Artificial Intelligence and Data Science"},
+            {"code": "AIML", "name": "Artificial Intelligence and Machine Learning", "description": "Department of Artificial Intelligence and Machine Learning"},
+            {"code": "CSE", "name": "Computer Science Engineering", "description": "Department of Computer Science Engineering"},
+            {"code": "CS", "name": "Cyber Security", "description": "Department of Cyber Security"},
+            {"code": "CC", "name": "Cloud Computing", "description": "Department of Cloud Computing"},
+            {"code": "AIHC", "name": "Artificial Intelligence and Healthcare", "description": "Department of Artificial Intelligence and Healthcare"}
+        ]
+        dept_map = {}
+        for d_dict in departments_data:
+            dept = Department(**d_dict)
+            db.add(dept)
+            db.flush()
+            dept_map[dept.code] = dept
+
+        # 4. Primary Admin User
         admin_user = User(
             email="admin@apollouniversity.edu.in",
             hashed_password=get_password_hash("Apollo@2026"),
@@ -122,7 +138,7 @@ def reset_to_clean_state():
         db.add(admin_user)
 
         db.commit()
-        print("Database successfully wiped of all mock data and reset to clean state!")
+        print("Database successfully wiped of all mock data and reset to clean state with 6 official departments!")
 
     except Exception as e:
         db.rollback()

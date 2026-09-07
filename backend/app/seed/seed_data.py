@@ -256,7 +256,25 @@ def seed_database(db: Session = None, include_demo_data: bool = False):
                 rule = SystemRule(**r_dict, updated_by="Administrator")
                 db.add(rule)
 
-        # 3. Ensure Primary Admin User
+        # 3. Base Institutional Departments
+        departments_data = [
+            {"code": "AIDS", "name": "Artificial Intelligence and Data Science", "description": "Department of Artificial Intelligence and Data Science"},
+            {"code": "AIML", "name": "Artificial Intelligence and Machine Learning", "description": "Department of Artificial Intelligence and Machine Learning"},
+            {"code": "CSE", "name": "Computer Science Engineering", "description": "Department of Computer Science Engineering"},
+            {"code": "CS", "name": "Cyber Security", "description": "Department of Cyber Security"},
+            {"code": "CC", "name": "Cloud Computing", "description": "Department of Cloud Computing"},
+            {"code": "AIHC", "name": "Artificial Intelligence and Healthcare", "description": "Department of Artificial Intelligence and Healthcare"}
+        ]
+        dept_map = {}
+        for d_dict in departments_data:
+            dept = db.query(Department).filter(Department.code == d_dict["code"]).first()
+            if not dept:
+                dept = Department(**d_dict)
+                db.add(dept)
+                db.flush()
+            dept_map[dept.code] = dept
+
+        # 4. Ensure Primary Admin User
         admin_user = db.query(User).filter(User.email == "admin@apollouniversity.edu.in").first()
         if not admin_user:
             admin_user = User(
@@ -269,22 +287,8 @@ def seed_database(db: Session = None, include_demo_data: bool = False):
             db.add(admin_user)
             db.flush()
 
-        # 4. Optional Demo Mockup Data
+        # 5. Optional Demo Mockup Data
         if include_demo_data:
-            departments_data = [
-                {"code": "CSE", "name": "Computer Science & Engineering", "description": "Department of CSE"},
-                {"code": "ECE", "name": "Electronics & Communication", "description": "Department of ECE"},
-                {"code": "MECH", "name": "Mechanical Engineering", "description": "Department of Mechanical Engineering"},
-                {"code": "MATH", "name": "Mathematics & Basic Sciences", "description": "Department of Mathematics"}
-            ]
-            dept_map = {}
-            for d_dict in departments_data:
-                dept = db.query(Department).filter(Department.code == d_dict["code"]).first()
-                if not dept:
-                    dept = Department(**d_dict)
-                    db.add(dept)
-                    db.flush()
-                dept_map[dept.code] = dept
 
             subjects_data = [
                 {"code": "CS101", "name": "Data Structures & Algorithms", "department_id": dept_map["CSE"].id, "credits": 4},

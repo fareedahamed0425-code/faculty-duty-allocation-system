@@ -73,7 +73,7 @@ def generate_user_help_response(db: Session, user_message: str, actor_name: str 
             f"   • **PC:** Program Coordinator (exempt from routine substitutions).\n"
             f"   • **COMMITTEE_MEMBER:** Examination & academic committee members.\n"
             f"   • **ADMIN:** Full system administration and configuration rights.\n"
-            f"3. **To Assign or Change Department:** Select the department (CSE, ECE, MECH, MATH) in the Department dropdown.\n"
+            f"3. **To Assign or Change Department:** Select the department (AIDS, AIML, CSE, CS, CC, AIHC) in the Department dropdown.\n"
             f"4. **To Register a New User:** Click the **'Add Institutional User'** button at the top right, enter their full name, official email, role, and department."
         )
         return {"reply": sanitize_plain_text_guidance(reply), "tool_calls": tools_executed, "actions_taken": ["Guided user on user registry and role management"], "facts_grounded": True}
@@ -173,17 +173,37 @@ def generate_user_help_response(db: Session, user_message: str, actor_name: str 
 
     # 7. Department & Faculty Search
     dept_match = None
-    for d in ["cse", "ece", "mech", "math", "computer science", "electronics", "mechanical", "mathematics"]:
-        if d in words or f"in {d}" in clean_q or f"{d} department" in clean_q:
-            dept_match = d
+    dept_keywords = {
+        "AIDS": ["aids", "artificial intelligence and data science", "data science"],
+        "AIML": ["aiml", "artificial intelligence and machine learning", "machine learning"],
+        "CSE": ["cse", "computer science engineering", "computer science"],
+        "CS": ["cyber security", "cyber"],
+        "CC": ["cloud computing", "cloud"],
+        "AIHC": ["aihc", "artificial intelligence and healthcare", "healthcare"]
+    }
+    
+    # Direct shortcode check in words
+    for code in ["AIDS", "AIML", "CSE", "CS", "CC", "AIHC"]:
+        if code.lower() in words:
+            dept_match = code
             break
+            
+    if not dept_match:
+        for code, aliases in dept_keywords.items():
+            if any(alias in clean_q for alias in aliases):
+                dept_match = code
+                break
 
-    if any(k in clean_q for k in ["faculty", "professor", "teacher", "staff", "who is", "tell me about", "members", "teachers", "directory"]) or dept_match:
-        dept_code = "CSE" if dept_match in ["cse", "computer science"] else "ECE" if dept_match in ["ece", "electronics"] else "MECH" if dept_match in ["mech", "mechanical"] else "MATH" if dept_match in ["math", "mathematics"] else None
+    if any(k in clean_q for k in ["faculty", "professor", "teacher", "staff", "who is", "tell me about", "members", "teachers", "directory", "departments", "department list"]) or dept_match:
+        dept_code = dept_match
         
         name_search = None
         cleaned_search_text = clean_q
-        for stop_word in ["about", "who is", "show", "faculty", "tell me", "tell", "members", "teachers", "list", "the", "in", "and", "from", "for", "with", "dept", "department", "cse", "ece", "mech", "math", "computer science", "electronics", "mechanical", "mathematics"]:
+        all_stop_words = [
+            "about", "who is", "show", "faculty", "tell me", "tell", "members", "teachers", "list", "the", "in", "and", "from", "for", "with", "dept", "department", "departments",
+            "aids", "aiml", "cse", "cs", "cc", "aihc", "artificial", "intelligence", "data science", "machine learning", "computer science", "cyber security", "cloud computing", "healthcare"
+        ]
+        for stop_word in all_stop_words:
             cleaned_search_text = cleaned_search_text.replace(stop_word, " ")
         for word in cleaned_search_text.split():
             if len(word) > 2:

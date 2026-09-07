@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
-import { DashboardStats, Faculty } from '../types';
+import { DashboardStats, Faculty, Department } from '../types';
 import {
   GraduationCap,
   Users,
@@ -20,18 +20,21 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadDeanData = async () => {
       setIsLoading(true);
       try {
-        const [statsRes, facRes] = await Promise.all([
+        const [statsRes, facRes, deptsRes] = await Promise.all([
           apiClient.get<DashboardStats>('/reports/dashboard'),
           apiClient.get<Faculty[]>('/faculty'),
+          apiClient.get<Department[]>('/faculty/departments'),
         ]);
         setStats(statsRes.data);
         setFaculty(facRes.data);
+        setDepartments(deptsRes.data);
       } catch (err) {
         console.warn('Could not fetch Dean dashboard data:', err);
       } finally {
@@ -43,13 +46,6 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
 
   const exemptCount = faculty.filter(f => f.is_exempt).length;
   const eligibleCount = faculty.filter(f => f.is_substitution_eligible).length;
-
-  const departments = [
-    { code: 'CSE', name: 'Computer Science & Engineering', facultyCount: 8, loadAvg: 1.4, compliance: '100%' },
-    { code: 'ECE', name: 'Electronics & Communication', facultyCount: 6, loadAvg: 1.2, compliance: '100%' },
-    { code: 'MECH', name: 'Mechanical Engineering', facultyCount: 5, loadAvg: 1.0, compliance: '100%' },
-    { code: 'MATH', name: 'Mathematics & Basic Sciences', facultyCount: 6, loadAvg: 1.1, compliance: '100%' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -159,26 +155,37 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {departments.map((dept) => (
-                <tr key={dept.code} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-900">
-                    {dept.name} <span className="text-slate-400 font-mono">({dept.code})</span>
-                  </td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-700">{dept.facultyCount} faculty</td>
-                  <td className="py-3.5 px-4 text-slate-600">{dept.loadAvg} duties / faculty</td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Within Safe Bounds (≤ 4)
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center space-x-1.5 text-emerald-700 font-bold text-xs">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{dept.compliance} Compliant</span>
-                    </div>
+              {departments.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-slate-400">
+                    No departments registered yet. Use User & Role Management to register departments and faculty.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                departments.map((dept) => {
+                  const deptFacultyCount = faculty.filter(f => f.department_id === dept.id).length;
+                  return (
+                    <tr key={dept.id || dept.code} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        {dept.name} <span className="text-slate-400 font-mono">({dept.code})</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{deptFacultyCount} faculty</td>
+                      <td className="py-3.5 px-4 text-slate-600">0.0 duties / faculty</td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Within Safe Bounds (≤ 4)
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center space-x-1.5 text-emerald-700 font-bold text-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>100% Compliant</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
