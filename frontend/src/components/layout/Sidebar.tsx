@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
@@ -15,23 +16,21 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
-  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  setActiveTab,
   isCollapsed,
   setIsCollapsed,
 }) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const roleName = user?.role?.name || '';
   const isAdmin = roleName === 'ADMIN';
   const isFaculty = roleName === 'FACULTY' || roleName === 'ADDITIONAL_MEMBERS';
@@ -42,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { 
       id: 'dashboard', 
+      path: '/dashboard',
       label: 'Admin Control Center', 
       shortLabel: 'Admin',
       icon: LayoutDashboard, 
@@ -50,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'users', 
+      path: '/users',
       label: 'User & Role Management', 
       shortLabel: 'Users',
       icon: Users, 
@@ -58,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'hod-dashboard', 
+      path: '/hod-dashboard',
       label: 'Department Overview', 
       shortLabel: 'Dept',
       icon: Building2, 
@@ -66,14 +68,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'dean-dashboard', 
+      path: '/dean-dashboard',
       label: 'Academic Governance', 
       shortLabel: 'Dean',
       icon: GraduationCap, 
-      visible: isDean,
+      visible: isDean || isAdmin,
       badge: 'Dean'
     },
     { 
       id: 'faculty-portal', 
+      path: '/faculty-portal',
       label: 'My Faculty Portal', 
       shortLabel: 'My Portal',
       icon: UserCheck, 
@@ -82,6 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'substitutions', 
+      path: '/substitutions',
       label: 'Substitution Duties', 
       shortLabel: 'Duties',
       icon: Repeat, 
@@ -89,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'timetables', 
+      path: '/timetables',
       label: 'Timetable Explorer', 
       shortLabel: 'Timetable',
       icon: Calendar, 
@@ -96,6 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'absences', 
+      path: '/absences',
       label: 'Absences & Leaves', 
       shortLabel: 'Absences',
       icon: UserX, 
@@ -103,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'faculty', 
+      path: '/faculty',
       label: 'Faculty Directory', 
       shortLabel: 'Faculty',
       icon: Users, 
@@ -110,6 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'reports', 
+      path: '/reports',
       label: 'Workload & Analytics', 
       shortLabel: 'Analytics',
       icon: BarChart3, 
@@ -117,6 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'rules', 
+      path: '/rules',
       label: 'System Rules & Limits', 
       shortLabel: 'Rules',
       icon: Sliders, 
@@ -124,6 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'audit', 
+      path: '/audit',
       label: 'Audit Trail & Compliance', 
       shortLabel: 'Audit',
       icon: ShieldCheck, 
@@ -131,6 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'academic-calendar', 
+      path: '/academic-calendar',
       label: 'Academic Calendar', 
       shortLabel: 'Calendar',
       icon: Calendar, 
@@ -139,6 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'ai-assistant', 
+      path: '/ai-assistant',
       label: 'Apollo AI Advisor', 
       shortLabel: 'AI Advisor',
       icon: Bot, 
@@ -179,11 +192,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           .filter((item) => item.visible)
           .map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = location.pathname === item.path || (item.path === '/dashboard' && (location.pathname === '/admin' || location.pathname === '/'));
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => navigate(item.path)}
                 title={item.label}
                 className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all cursor-pointer group relative ${
                   isCollapsed ? 'justify-center p-3' : 'justify-between px-3 py-2.5'
@@ -232,8 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed ? (
           <div className="p-3.5 rounded-xl bg-[#f0f9fb] border border-[#bee3ee]">
             <div className="flex items-center space-x-1.5 text-xs font-bold text-[#0e3b4b] mb-1">
-              <ShieldCheck className="w-4 h-4 text-[#2582a1] shrink-0" />
-              <span className="truncate">The Apollo Policy Rules</span>
+              <span className="truncate font-bold">The Apollo Policy Rules</span>
             </div>
             <p className="text-[11px] text-slate-600 leading-relaxed">
               • Max Weekly Duties: <strong className="text-[#0e3b4b]">4 duties</strong><br />
@@ -246,7 +258,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="flex justify-center p-2 rounded-xl bg-[#f0f9fb] border border-[#bee3ee] text-[#2582a1] group relative cursor-pointer"
             title="The Apollo Policy Rules: Max 4 Duties/Wk • Max 2 Daily • 100% Fairness"
           >
-            <ShieldCheck className="w-5 h-5" />
+            <div className="w-5 h-5 flex items-center justify-center font-bold text-xs">§</div>
             <div className="absolute left-full ml-2 bottom-0 p-3 bg-[#0e3b4b] text-white text-xs font-medium rounded-xl shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
               <p className="font-bold text-[#fdb931] mb-1">The Apollo Policy Rules</p>
               <p className="text-[11px] text-slate-200 leading-tight">• Max 4 duties/week</p>

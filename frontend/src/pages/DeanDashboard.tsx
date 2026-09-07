@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
 import { DashboardStats, Faculty, Department } from '../types';
@@ -12,11 +13,19 @@ import {
 } from 'lucide-react';
 
 interface DeanDashboardProps {
-  onNavigate: (tab: string) => void;
-  onOpenAI: () => void;
+  onNavigate?: (tab: string) => void;
+  onOpenAI?: () => void;
 }
 
 export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpenAI }) => {
+  const navigate = useNavigate();
+  const handleNav = (target: string) => {
+    if (onNavigate) {
+      onNavigate(target);
+    } else {
+      navigate(target.startsWith('/') ? target : `/${target}`);
+    }
+  };
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
@@ -136,7 +145,7 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
             <p className="text-xs text-slate-500">Comparative workload health across university academic departments</p>
           </div>
           <button
-            onClick={() => onNavigate('reports')}
+            onClick={() => handleNav('reports')}
             className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
           >
             Detailed Analytics →
@@ -199,7 +208,7 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
             <p className="text-xs text-slate-500">Live synchronization with HOD, PC, Dean, and Admin portals</p>
           </div>
           <button
-            onClick={() => onNavigate('absences')}
+            onClick={() => handleNav('absences')}
             className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
           >
             Manage Leaves & Substitutions →

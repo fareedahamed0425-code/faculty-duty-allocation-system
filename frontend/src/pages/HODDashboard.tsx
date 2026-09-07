@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
 import { Faculty, SubstitutionDuty, TimetableEntry } from '../types';
@@ -13,11 +14,12 @@ import {
 } from 'lucide-react';
 
 interface HODDashboardProps {
-  onNavigate: (tab: string) => void;
-  onOpenAI: () => void;
+  onNavigate?: (tab: string) => void;
+  onOpenAI?: () => void;
 }
 
 export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [duties, setDuties] = useState<SubstitutionDuty[]>([]);
@@ -142,7 +144,7 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI
               <p className="text-xs text-slate-500">Weekly substitution load tracker against Apollo limit (4/week)</p>
             </div>
             <button
-              onClick={() => onNavigate('faculty')}
+              onClick={() => onNavigate ? onNavigate('faculty') : navigate('/faculty')}
               className="text-xs text-[#2582a1] hover:text-[#165369] font-bold flex items-center space-x-1 cursor-pointer"
             >
               <span>View All</span>
@@ -200,7 +202,7 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI
                 <p className="text-xs text-slate-500">Autonomous fairness allocations</p>
               </div>
               <button
-                onClick={() => onNavigate('substitutions')}
+                onClick={() => onNavigate ? onNavigate('substitutions') : navigate('/substitutions')}
                 className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
               >
                 Manage
@@ -244,7 +246,7 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI
             <p className="text-xs text-slate-500">Live attendance sync with Admin and Faculty portals</p>
           </div>
           <button
-            onClick={() => onNavigate('absences')}
+            onClick={() => onNavigate ? onNavigate('absences') : navigate('/absences')}
             className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
           >
             Manage Department Absences →

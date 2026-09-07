@@ -15,19 +15,19 @@ def get_current_user(
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Could not validate credentials. Please sign in.",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    if not token:
-        # If no token provided, return default active admin for smooth development/testing if available
-        first_user = db.query(User).filter(User.is_active == True).first()
-        if first_user:
-            return first_user
+    if not token or not token.strip():
         raise credentials_exception
+
+    clean_token = token.strip()
+    if clean_token.lower().startswith("bearer "):
+        clean_token = clean_token[7:].strip()
 
     # 1. Try decoding with institutional SECRET_KEY
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(clean_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id_str: str = payload.get("sub")
         if user_id_str:
             user = db.query(User).filter(User.id == int(user_id_str)).first()
@@ -36,36 +36,24 @@ def get_current_user(
     except Exception:
         pass
 
-    # 2. Try decoding claims without signature validation (e.g. Firebase ID token)
+    # 2. Try decoding claims from Firebase ID token or external JWT
     try:
-        unverified_claims = jwt.get_unverified_claims(token)
+        unverified_claims = jwt.get_unverified_claims(clean_token)
         email = unverified_claims.get("email") or unverified_claims.get("sub")
-        if email:
+        if email and isinstance(email, str) and "@" in email:
             user = db.query(User).filter(User.email == email.strip().lower()).first()
             if user and user.is_active:
                 return user
     except Exception:
         pass
 
-    # 3. Fallback: match mock token pattern if any
-    if "admin" in token.lower():
-        admin_user = db.query(User).join(Role).filter(Role.name == "ADMIN", User.is_active == True).first()
-        if admin_user:
-            return admin_user
-
-    first_active = db.query(User).filter(User.is_active == True).first()
-    if first_active:
-        return first_active
-
     raise credentials_exception
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.role or current_user.role.name != "ADMIN":
-        # Check if user is first user or admin email
-        if "admin" in current_user.email.lower():
-            return current_user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required for this operation."
         )
     return current_user
+

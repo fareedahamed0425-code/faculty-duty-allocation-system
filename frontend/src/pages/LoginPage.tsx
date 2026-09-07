@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Lock,
@@ -16,7 +17,9 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, loginWithGoogle, register, resetPassword, isLoading } = useAuth();
+  const { user, login, loginWithGoogle, register, resetPassword, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +33,36 @@ export const LoginPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotStatus, setForgotStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [forgotError, setForgotError] = useState<string | null>(null);
+
+  const getRoleLanding = (roleName?: string) => {
+    switch (roleName) {
+      case 'ADMIN':
+        return '/dashboard';
+      case 'DEAN':
+        return '/dean-dashboard';
+      case 'PC':
+      case 'HOD':
+        return '/hod-dashboard';
+      case 'FACULTY':
+      case 'ADDITIONAL_MEMBERS':
+      case 'INTERNAL_MEMBERS':
+      default:
+        return '/faculty-portal';
+    }
+  };
+
+  const from = (location.state as any)?.from;
+
+  useEffect(() => {
+    if (user) {
+      // If user attempted to navigate to admin route but has non-admin role, go to role landing
+      let target = from && from !== '/login' ? from : getRoleLanding(user.role?.name);
+      if ((target === '/dashboard' || target === '/admin' || target === '/users' || target === '/rules') && user.role?.name !== 'ADMIN') {
+        target = getRoleLanding(user.role?.name);
+      }
+      navigate(target, { replace: true });
+    }
+  }, [user, from, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

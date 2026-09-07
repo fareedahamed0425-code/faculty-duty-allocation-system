@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   X,
@@ -21,19 +22,20 @@ import {
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   onOpenAI: () => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,
   onClose,
-  activeTab,
-  setActiveTab,
   onOpenAI,
 }) => {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const roleName = user?.role?.name || '';
   const isAdmin = roleName === 'ADMIN';
   const isFaculty = roleName === 'FACULTY' || roleName === 'ADDITIONAL_MEMBERS';
@@ -46,6 +48,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const navItems = [
     {
       id: 'dashboard',
+      path: '/dashboard',
       label: 'Admin Control Center',
       icon: LayoutDashboard,
       visible: isAdmin,
@@ -53,6 +56,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
     {
       id: 'users',
+      path: '/users',
       label: 'User & Role Management',
       icon: Users,
       visible: isAdmin,
@@ -60,6 +64,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
     {
       id: 'hod-dashboard',
+      path: '/hod-dashboard',
       label: 'Department Overview',
       icon: Building2,
       visible: isPC || isDean || isAdmin,
@@ -67,13 +72,15 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
     {
       id: 'dean-dashboard',
+      path: '/dean-dashboard',
       label: 'Academic Governance',
       icon: GraduationCap,
-      visible: isDean,
+      visible: isDean || isAdmin,
       badge: 'Dean',
     },
     {
       id: 'faculty-portal',
+      path: '/faculty-portal',
       label: 'My Faculty Portal',
       icon: UserCheck,
       visible: true,
@@ -81,48 +88,56 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
     {
       id: 'substitutions',
+      path: '/substitutions',
       label: 'Substitution Duties',
       icon: Repeat,
       visible: true,
     },
     {
       id: 'timetables',
+      path: '/timetables',
       label: 'Timetable Explorer',
       icon: Calendar,
       visible: true,
     },
     {
       id: 'absences',
+      path: '/absences',
       label: 'Absences & Leaves',
       icon: UserX,
       visible: isAdmin || isLeadership,
     },
     {
       id: 'faculty',
+      path: '/faculty',
       label: 'Faculty Directory',
       icon: Users,
       visible: isAdmin || isLeadership,
     },
     {
       id: 'reports',
+      path: '/reports',
       label: 'Workload & Analytics',
       icon: BarChart3,
       visible: isAdmin || isLeadership,
     },
     {
       id: 'rules',
+      path: '/rules',
       label: 'System Rules & Limits',
       icon: Sliders,
       visible: isAdmin,
     },
     {
       id: 'audit',
+      path: '/audit',
       label: 'Audit Trail & Compliance',
       icon: ShieldCheck,
       visible: isAdmin || isLeadership,
     },
     {
       id: 'academic-calendar',
+      path: '/academic-calendar',
       label: 'Academic Calendar',
       icon: Calendar,
       visible: true,
@@ -130,6 +145,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
     {
       id: 'ai-assistant',
+      path: '/ai-assistant',
       label: 'AI Assistant',
       icon: Bot,
       visible: true,
@@ -137,8 +153,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     },
   ];
 
-  const handleSelectTab = (id: string) => {
-    setActiveTab(id);
+  const handleNavigate = (path: string) => {
+    navigate(path);
     onClose();
   };
 
@@ -204,11 +220,11 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </div>
             {navItems.filter((i) => i.visible).map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/admin');
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleSelectTab(item.id)}
+                  onClick={() => handleNavigate(item.path)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#f0f9fb] text-[#2582a1] font-bold shadow-xs border border-[#bee3ee]'
@@ -248,9 +264,10 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
           </button>
 
           <button
-            onClick={() => {
+            onClick={async () => {
               onClose();
-              logout();
+              await logout();
+              navigate('/login');
             }}
             className="w-full py-2 px-3 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-semibold flex items-center justify-center space-x-2 transition-colors cursor-pointer"
           >

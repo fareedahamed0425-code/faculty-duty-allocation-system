@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Navbar } from './components/layout/Navbar';
-import { Sidebar } from './components/layout/Sidebar';
-import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { MobileDrawer } from './components/layout/MobileDrawer';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { ProtectedRoute, AdminRoute, RoleRoute } from './components/auth/ProtectedRoute';
+
+// Pages
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { HODDashboard } from './pages/HODDashboard';
@@ -19,48 +20,13 @@ import { AuditLogsPage } from './pages/AuditLogsPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { UserManagement } from './pages/UserManagement';
 import { AcademicCalendarPage } from './pages/AcademicCalendarPage';
-import { AIAssistantDrawer } from './components/ai/AIAssistantDrawer';
+import { AccessDeniedPage } from './pages/AccessDeniedPage';
 
-const MainApp: React.FC = () => {
+/**
+ * Intelligently redirects users from '/' to their role's default landing page.
+ */
+const RootRedirect: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-
-  // Persistent sidebar collapsed state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('apollo_sidebar_collapsed');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('apollo_sidebar_collapsed', String(isSidebarCollapsed));
-    } catch {
-      // ignore
-    }
-  }, [isSidebarCollapsed]);
-
-  const roleName = user?.role?.name || '';
-
-  // Auto-route user to their dedicated role-specific landing page upon login/role change
-  useEffect(() => {
-    if (user) {
-      if (roleName === 'FACULTY') {
-        setActiveTab('faculty-portal');
-      } else if (roleName === 'HOD') {
-        setActiveTab('hod-dashboard');
-      } else if (roleName === 'DEAN') {
-        setActiveTab('dean-dashboard');
-      } else {
-        setActiveTab('dashboard');
-      }
-    }
-  }, [roleName, user?.id]);
 
   if (isLoading) {
     return (
@@ -73,99 +39,159 @@ const MainApp: React.FC = () => {
     );
   }
 
-  // Not logged in -> Show Login Page
   if (!user) {
-    return <LoginPage />;
+    return <Navigate to="/login" replace />;
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900 selection:bg-[#2582a1] selection:text-white">
-      {/* Top Navigation */}
-      <Navbar
-        onOpenAI={() => setIsAIDrawerOpen(true)}
-        onOpenMenu={() => setIsMobileMenuOpen(true)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
-      />
-
-      {/* Main Layout Container */}
-      <div className="flex-1 flex w-full max-w-[1600px] mx-auto min-w-0">
-        {/* Left Sidebar (Desktop only) with collapsible support */}
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isCollapsed={isSidebarCollapsed}
-          setIsCollapsed={setIsSidebarCollapsed}
-        />
-
-        {/* Content Area with mobile safe-padding and strictly bounded width */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto min-w-0">
-          <div className="w-full min-w-0 max-w-full">
-            {activeTab === 'dashboard' && (
-              <AdminDashboard
-                onNavigate={(tab) => setActiveTab(tab)}
-                onOpenAI={() => setIsAIDrawerOpen(true)}
-              />
-            )}
-            {activeTab === 'hod-dashboard' && (
-              <HODDashboard
-                onNavigate={(tab) => setActiveTab(tab)}
-                onOpenAI={() => setIsAIDrawerOpen(true)}
-              />
-            )}
-            {activeTab === 'dean-dashboard' && (
-              <DeanDashboard
-                onNavigate={(tab) => setActiveTab(tab)}
-                onOpenAI={() => setIsAIDrawerOpen(true)}
-              />
-            )}
-            {activeTab === 'faculty-portal' && <FacultyPortal />}
-            {activeTab === 'users' && <UserManagement />}
-            {activeTab === 'faculty' && <FacultyManagement />}
-            {activeTab === 'timetables' && <TimetablePage />}
-            {activeTab === 'absences' && <AbsencesPage />}
-            {activeTab === 'substitutions' && <SubstitutionsPage />}
-            {activeTab === 'academic-calendar' && <AcademicCalendarPage />}
-            {activeTab === 'reports' && <ReportsPage />}
-            {activeTab === 'rules' && <SystemRulesPage />}
-            {activeTab === 'audit' && <AuditLogsPage />}
-            {activeTab === 'ai-assistant' && <AIAssistantPage />}
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation Bar (iOS / Android) */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenMenu={() => setIsMobileMenuOpen(true)}
-        onOpenAI={() => setIsAIDrawerOpen(true)}
-      />
-
-      {/* Mobile Slide-over Menu Drawer */}
-      <MobileDrawer
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenAI={() => setIsAIDrawerOpen(true)}
-      />
-
-      {/* AI Assistant Slide-Out Panel */}
-      <AIAssistantDrawer
-        isOpen={isAIDrawerOpen}
-        onClose={() => setIsAIDrawerOpen(false)}
-      />
-    </div>
-  );
+  const roleName = user.role?.name || '';
+  if (roleName === 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  } else if (roleName === 'DEAN') {
+    return <Navigate to="/dean-dashboard" replace />;
+  } else if (roleName === 'HOD' || roleName === 'PC') {
+    return <Navigate to="/hod-dashboard" replace />;
+  } else {
+    return <Navigate to="/faculty-portal" replace />;
+  }
 };
 
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <BrowserRouter>
+        <Routes>
+          {/* Public Login Route */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Root Smart Redirect */}
+          <Route path="/" element={<RootRedirect />} />
+
+          {/* Authenticated Application Layout */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            {/* 1. Admin Control Center (Strictly Locked to ADMIN) */}
+            <Route
+              path="/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+
+            {/* 2. User & Role Management (Strictly Locked to ADMIN) */}
+            <Route
+              path="/users"
+              element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              }
+            />
+            <Route path="/admin/users" element={<Navigate to="/users" replace />} />
+
+            {/* 3. System Rules & Limits (Strictly Locked to ADMIN) */}
+            <Route
+              path="/rules"
+              element={
+                <AdminRoute>
+                  <SystemRulesPage />
+                </AdminRoute>
+              }
+            />
+            <Route path="/admin/rules" element={<Navigate to="/rules" replace />} />
+            <Route path="/system-rules" element={<Navigate to="/rules" replace />} />
+
+            {/* 4. Leadership & Governance Dashboards */}
+            <Route
+              path="/hod-dashboard"
+              element={
+                <RoleRoute allowedRoles={['PC', 'DEAN', 'HOD']}>
+                  <HODDashboard />
+                </RoleRoute>
+              }
+            />
+            <Route path="/dept" element={<Navigate to="/hod-dashboard" replace />} />
+
+            <Route
+              path="/dean-dashboard"
+              element={
+                <RoleRoute allowedRoles={['DEAN']}>
+                  <DeanDashboard />
+                </RoleRoute>
+              }
+            />
+            <Route path="/dean" element={<Navigate to="/dean-dashboard" replace />} />
+
+            {/* 5. Faculty & Operational Pages */}
+            <Route path="/faculty-portal" element={<FacultyPortal />} />
+            <Route path="/portal" element={<Navigate to="/faculty-portal" replace />} />
+
+            <Route path="/substitutions" element={<SubstitutionsPage />} />
+            <Route path="/duties" element={<Navigate to="/substitutions" replace />} />
+
+            <Route path="/timetables" element={<TimetablePage />} />
+
+            <Route
+              path="/absences"
+              element={
+                <RoleRoute allowedRoles={['ADMIN', 'DEAN', 'PC', 'INTERNAL_MEMBERS']}>
+                  <AbsencesPage />
+                </RoleRoute>
+              }
+            />
+            <Route path="/leaves" element={<Navigate to="/absences" replace />} />
+
+            <Route
+              path="/faculty"
+              element={
+                <RoleRoute allowedRoles={['ADMIN', 'DEAN', 'PC', 'INTERNAL_MEMBERS']}>
+                  <FacultyManagement />
+                </RoleRoute>
+              }
+            />
+
+            <Route
+              path="/reports"
+              element={
+                <RoleRoute allowedRoles={['ADMIN', 'DEAN', 'PC', 'INTERNAL_MEMBERS']}>
+                  <ReportsPage />
+                </RoleRoute>
+              }
+            />
+            <Route path="/analytics" element={<Navigate to="/reports" replace />} />
+
+            <Route
+              path="/audit"
+              element={
+                <RoleRoute allowedRoles={['ADMIN', 'DEAN', 'PC', 'INTERNAL_MEMBERS']}>
+                  <AuditLogsPage />
+                </RoleRoute>
+              }
+            />
+            <Route path="/audit-logs" element={<Navigate to="/audit" replace />} />
+
+            <Route path="/academic-calendar" element={<AcademicCalendarPage />} />
+            <Route path="/calendar" element={<Navigate to="/academic-calendar" replace />} />
+
+            <Route path="/ai-assistant" element={<AIAssistantPage />} />
+            <Route path="/ai" element={<Navigate to="/ai-assistant" replace />} />
+
+            {/* 6. Locked / Access Denied page */}
+            <Route path="/access-denied" element={<AccessDeniedPage />} />
+            <Route path="/unauthorized" element={<Navigate to="/access-denied" replace />} />
+          </Route>
+
+          {/* Catch-all fallback */}
+          <Route path="*" element={<RootRedirect />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

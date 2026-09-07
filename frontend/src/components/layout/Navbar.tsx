@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Bell, 
@@ -23,8 +24,8 @@ import { NotificationItem } from '../../types';
 interface NavbarProps {
   onOpenAI: () => void;
   onOpenMenu: () => void;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
   isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
 }
@@ -38,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSidebar,
 }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -168,15 +170,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Apollo Logo & Brand Header */}
-            <div className="flex items-center space-x-2.5">
+            <div 
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-2.5 cursor-pointer select-none group"
+              title="Return to home portal"
+            >
               <img
                 src="/apollo_logo.svg"
                 alt="The Apollo University"
-                className="h-9 sm:h-10 w-auto object-contain shrink-0"
+                className="h-9 sm:h-10 w-auto object-contain shrink-0 group-hover:opacity-90 transition-opacity"
               />
               <div className="border-l border-slate-200 pl-2.5">
                 <div className="flex items-center space-x-1.5 sm:space-x-2">
-                  <span className="font-bold text-[#0e3b4b] tracking-tight text-sm sm:text-base lg:text-lg whitespace-nowrap">
+                  <span className="font-bold text-[#0e3b4b] tracking-tight text-sm sm:text-base lg:text-lg whitespace-nowrap group-hover:text-[#2582a1] transition-colors">
                     The Apollo University
                   </span>
                   <span className="hidden xs:inline-block text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-[#f0f9fb] text-[#2582a1] font-bold border border-[#bee3ee] uppercase tracking-wider">
@@ -388,7 +394,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
               <button
-                onClick={logout}
+                onClick={async () => {
+                  await logout();
+                  navigate('/login');
+                }}
                 title="Sign Out"
                 className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 text-xs text-slate-600 hover:text-rose-600 rounded-xl hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer"
               >

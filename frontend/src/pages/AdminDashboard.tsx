@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { DashboardStats, SubstitutionRequirement, Faculty, CheckDateResult, User } from '../types';
 import { StatCard } from '../components/common/StatCard';
@@ -25,11 +26,19 @@ import {
 } from 'lucide-react';
 
 interface AdminDashboardProps {
-  onNavigate: (tab: string) => void;
-  onOpenAI: () => void;
+  onNavigate?: (tab: string) => void;
+  onOpenAI?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenAI }) => {
+  const navigate = useNavigate();
+  const handleNav = (target: string) => {
+    if (onNavigate) {
+      onNavigate(target);
+    } else {
+      navigate(target.startsWith('/') ? target : `/${target}`);
+    }
+  };
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentDuties, setRecentDuties] = useState<any[]>([]);
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
@@ -199,14 +208,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => onNavigate('users')}
+            onClick={() => handleNav('users')}
             className="px-3.5 py-2.5 rounded-xl bg-[#0e3b4b] hover:bg-[#165369] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shadow-xs cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4 text-[#fdb931]" />
             <span>Manage Users & Roles</span>
           </button>
           <button
-            onClick={() => onNavigate('academic-calendar')}
+            onClick={() => handleNav('academic-calendar')}
             className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
             <CalendarDays className="w-4 h-4 text-[#2582a1]" />
@@ -256,7 +265,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
                 </div>
               </div>
               <button
-                onClick={() => onNavigate('substitutions')}
+                onClick={() => handleNav('substitutions')}
                 className="font-bold underline hover:no-underline text-xs cursor-pointer"
               >
                 Resolve
@@ -274,7 +283,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           subtitle="Monitored in timetable"
           icon={Users}
           variant="blue"
-          onClick={() => onNavigate('faculty')}
+          onClick={() => handleNav('faculty')}
         />
         <StatCard
           title="Today's Absences"
@@ -282,7 +291,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           subtitle={`${stats?.today_affected_classes_count || 0} affected classes`}
           icon={UserX}
           variant="rose"
-          onClick={() => onNavigate('absences')}
+          onClick={() => handleNav('absences')}
         />
         <StatCard
           title="Allocated Substitutions"
@@ -290,7 +299,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           subtitle="100% compliant with Rules 1–7"
           icon={CheckCircle2}
           variant="emerald"
-          onClick={() => onNavigate('substitutions')}
+          onClick={() => handleNav('substitutions')}
         />
         <StatCard
           title="Unallocated Classes"
@@ -298,7 +307,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           subtitle="Requires attention"
           icon={AlertCircle}
           variant={stats?.today_unallocated_count ? 'rose' : 'slate'}
-          onClick={() => onNavigate('substitutions')}
+          onClick={() => handleNav('substitutions')}
         />
       </div>
 
@@ -358,7 +367,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
               <p className="text-xs text-slate-500">Recent automatic and manual duty allocations</p>
             </div>
             <button
-              onClick={() => onNavigate('substitutions')}
+              onClick={() => handleNav('substitutions')}
               className="text-xs font-bold text-[#2582a1] hover:text-[#165369] cursor-pointer"
             >
               View All Duties →
@@ -433,7 +442,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => onNavigate('users')}
+              onClick={() => handleNav('users')}
               className="px-3.5 py-1.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -518,7 +527,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
                       </td>
                       <td className="py-3 text-right">
                         <button
-                          onClick={() => onNavigate('users')}
+                          onClick={() => handleNav('users')}
                           className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#f0f9fb] hover:text-[#2582a1] text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           Configure
