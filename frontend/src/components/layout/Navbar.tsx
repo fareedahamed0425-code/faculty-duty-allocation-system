@@ -122,12 +122,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     switch (roleName) {
       case 'ADMIN':
         return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'HOD':
-        return 'bg-[#dcf1f6] text-[#165369] border-[#bee3ee]';
       case 'DEAN':
         return 'bg-[#fff8eb] text-[#b37d10] border-[#fde6b3]';
       case 'PC':
         return 'bg-amber-100 text-amber-900 border-amber-200';
+      case 'INTERNAL_MEMBERS':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'ADDITIONAL_MEMBERS':
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'FACULTY':
       default:
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';

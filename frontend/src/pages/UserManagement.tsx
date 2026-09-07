@@ -256,8 +256,9 @@ export const UserManagement: React.FC = () => {
 
   const adminCount = users.filter((u) => u.role?.name === 'ADMIN').length;
   const deanCount = users.filter((u) => u.role?.name === 'DEAN').length;
-  const hodCount = users.filter((u) => u.role?.name === 'HOD').length;
-  const pcCount = users.filter((u) => u.role?.name === 'PC' || u.role?.name === 'COMMITTEE_MEMBER').length;
+  const pcCount = users.filter((u) => u.role?.name === 'PC').length;
+  const internalCount = users.filter((u) => u.role?.name === 'INTERNAL_MEMBERS').length;
+  const additionalCount = users.filter((u) => u.role?.name === 'ADDITIONAL_MEMBERS').length;
   const facultyCount = users.filter((u) => u.role?.name === 'FACULTY').length;
 
   const getRoleBadge = (roleName?: string) => {
@@ -266,12 +267,12 @@ export const UserManagement: React.FC = () => {
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'DEAN':
         return 'bg-amber-100 text-amber-900 border-amber-200';
-      case 'HOD':
-        return 'bg-cyan-100 text-cyan-900 border-cyan-200';
       case 'PC':
         return 'bg-blue-100 text-blue-900 border-blue-200';
-      case 'COMMITTEE_MEMBER':
+      case 'INTERNAL_MEMBERS':
         return 'bg-indigo-100 text-indigo-900 border-indigo-200';
+      case 'ADDITIONAL_MEMBERS':
+        return 'bg-teal-100 text-teal-900 border-teal-200';
       case 'FACULTY':
       default:
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -336,29 +337,29 @@ export const UserManagement: React.FC = () => {
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#b37d10]">Deans & HODs</span>
+            <span className="text-xs font-bold text-[#b37d10]">Deans</span>
             <Building2 className="w-4 h-4 text-[#b37d10]" />
           </div>
-          <p className="text-xl sm:text-2xl font-extrabold text-[#0e3b4b] mt-2">{deanCount + hodCount}</p>
-          <span className="text-[10px] text-slate-400 font-medium">{deanCount} Dean • {hodCount} HOD</span>
+          <p className="text-xl sm:text-2xl font-extrabold text-[#0e3b4b] mt-2">{deanCount}</p>
+          <span className="text-[10px] text-slate-400 font-medium">Academic leadership</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-700">Coordinators</span>
+            <span className="text-xs font-bold text-blue-700">Coordinators (PC)</span>
             <Briefcase className="w-4 h-4 text-blue-600" />
           </div>
           <p className="text-xl sm:text-2xl font-extrabold text-blue-900 mt-2">{pcCount}</p>
-          <span className="text-[10px] text-slate-400 font-medium">PC & Committee</span>
+          <span className="text-[10px] text-slate-400 font-medium">Program coordinators</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700">Teaching Faculty</span>
-            <UserCheck className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-bold text-indigo-700">Internal & Additional</span>
+            <Award className="w-4 h-4 text-indigo-600" />
           </div>
-          <p className="text-xl sm:text-2xl font-extrabold text-emerald-900 mt-2">{facultyCount}</p>
-          <span className="text-[10px] text-slate-400 font-medium">Substitution eligible</span>
+          <p className="text-xl sm:text-2xl font-extrabold text-indigo-900 mt-2">{internalCount + additionalCount}</p>
+          <span className="text-[10px] text-slate-400 font-medium">{internalCount} Internal • {additionalCount} Additional</span>
         </div>
       </div>
 
@@ -376,69 +377,80 @@ export const UserManagement: React.FC = () => {
           ) : (
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
           )}
-          <div className="text-xs font-medium leading-relaxed">{feedback.message}</div>
+          <div className="flex-1 text-xs">
+            <p className="font-bold">{feedback.type === 'success' ? 'Success' : 'Error'}</p>
+            <p className="mt-0.5">{feedback.message}</p>
+          </div>
         </div>
       )}
 
-      {/* Table Card */}
+      {/* Controls & User Table Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Controls Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Search className="w-4 h-4" />
+        {/* Filter Toolbar */}
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, email, faculty ID, or designation..."
+                className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-300 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2582a1] transition-all"
+              />
             </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, email, department, code, or designation..."
-              className="block w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2582a1] focus:border-transparent font-medium"
-            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Department Filter */}
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2582a1]"
+              >
+                <option value="ALL">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.code} - {d.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2582a1]"
+              >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active Accounts</option>
+                <option value="INACTIVE">Disabled Accounts</option>
+              </select>
+            </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Department Filter */}
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2582a1]"
-            >
-              <option value="ALL">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.code}>{d.name} ({d.code})</option>
-              ))}
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2582a1]"
-            >
-              <option value="ALL">All Status</option>
-              <option value="ACTIVE">Active Accounts</option>
-              <option value="INACTIVE">Disabled Accounts</option>
-            </select>
-
-            {/* Role Filter Pills */}
-            <div className="flex flex-wrap items-center gap-1">
-              {['ALL', 'ADMIN', 'DEAN', 'HOD', 'PC', 'COMMITTEE_MEMBER', 'FACULTY'].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRoleFilter(r)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    roleFilter === r
-                      ? 'bg-[#2582a1] text-white shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {r === 'ALL' ? 'All Roles' : r}
-                </button>
-              ))}
-            </div>
+          {/* Role Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Role Filter:</span>
+            {['ALL', 'ADMIN', 'FACULTY', 'DEAN', 'PC', 'INTERNAL_MEMBERS', 'ADDITIONAL_MEMBERS'].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRoleFilter(r)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  roleFilter === r
+                    ? 'bg-[#2582a1] text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {r === 'ALL'
+                  ? 'All Roles'
+                  : r === 'INTERNAL_MEMBERS'
+                  ? 'Internal Members'
+                  : r === 'ADDITIONAL_MEMBERS'
+                  ? 'Additional Members'
+                  : r}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -457,17 +469,12 @@ export const UserManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {isLoading ? (
+              {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <div className="w-6 h-6 border-2 border-[#2582a1] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    Loading registered university users...
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No users found matching your search and filter criteria.
+                    <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold">No institutional users match the selected filters.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Try resetting the search query or role filter.</p>
                   </td>
                 </tr>
               ) : (
@@ -477,23 +484,23 @@ export const UserManagement: React.FC = () => {
 
                   return (
                     <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* User Details */}
+                      {/* User Info */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-xl bg-[#0e3b4b] text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {u.full_name?.charAt(0) || 'U'}
+                          <div className="w-8 h-8 rounded-full bg-[#0e3b4b] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {u.full_name ? u.full_name.charAt(0).toUpperCase() : 'U'}
                           </div>
                           <div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1.5">
                               <span className="font-bold text-slate-900">{u.full_name}</span>
                               {isSelf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">
+                                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
                                   You
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-500 font-mono flex items-center mt-0.5">
-                              <Mail className="w-3 h-3 mr-1 text-slate-400" />
+                            <span className="text-[11px] text-slate-500 flex items-center mt-0.5">
+                              <Mail className="w-2.5 h-2.5 mr-1 text-slate-400" />
                               {u.email}
                             </span>
                             {u.phone && (
@@ -532,7 +539,11 @@ export const UserManagement: React.FC = () => {
                             u.role?.name
                           )}`}
                         >
-                          {u.role?.name || 'FACULTY'}
+                          {u.role?.name === 'INTERNAL_MEMBERS'
+                            ? 'Internal Members'
+                            : u.role?.name === 'ADDITIONAL_MEMBERS'
+                            ? 'Additional Members'
+                            : u.role?.name || 'FACULTY'}
                         </span>
                         {u.is_exempt ? (
                           <span className="block text-[9px] text-amber-700 font-medium mt-0.5">
@@ -553,12 +564,12 @@ export const UserManagement: React.FC = () => {
                           onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
                           className="bg-slate-50 hover:bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2582a1] transition-all cursor-pointer disabled:opacity-50"
                         >
-                          <option value="FACULTY">Faculty (Teaching Member)</option>
-                          <option value="HOD">HOD (Department Head)</option>
-                          <option value="DEAN">Dean (Academic Affairs)</option>
+                          <option value="ADMIN">ADMIN (System Administrator)</option>
+                          <option value="FACULTY">FACULTY (Teaching Member)</option>
+                          <option value="DEAN">DEAN (Academic Affairs)</option>
                           <option value="PC">PC (Program Coordinator)</option>
-                          <option value="COMMITTEE_MEMBER">Committee Member</option>
-                          <option value="ADMIN">Admin (System Administrator)</option>
+                          <option value="INTERNAL_MEMBERS">INTERNAL MEMBERS</option>
+                          <option value="ADDITIONAL_MEMBERS">ADDITIONAL MEMBERS</option>
                         </select>
                       </td>
 
@@ -679,21 +690,21 @@ export const UserManagement: React.FC = () => {
                 onChange={(e) => {
                   const r = e.target.value as UserRole;
                   setNewRole(r);
-                  if (r === 'HOD') setNewDesignation('Professor & Head of Department');
-                  else if (r === 'DEAN') setNewDesignation('Dean of Academic Affairs');
+                  if (r === 'DEAN') setNewDesignation('Dean of Academic Affairs');
                   else if (r === 'ADMIN') setNewDesignation('System Administrator');
                   else if (r === 'PC') setNewDesignation('Program Coordinator');
-                  else if (r === 'COMMITTEE_MEMBER') setNewDesignation('Committee Member');
+                  else if (r === 'INTERNAL_MEMBERS') setNewDesignation('Internal Committee Member');
+                  else if (r === 'ADDITIONAL_MEMBERS') setNewDesignation('Additional Faculty Member');
                   else setNewDesignation('Assistant Professor');
                 }}
                 className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-semibold"
               >
-                <option value="FACULTY">Faculty (Teaching Member)</option>
-                <option value="HOD">HOD (Department Head)</option>
-                <option value="DEAN">Dean (Academic Affairs)</option>
+                <option value="FACULTY">FACULTY (Teaching Member)</option>
+                <option value="ADMIN">ADMIN (System Administrator)</option>
+                <option value="DEAN">DEAN (Academic Affairs)</option>
                 <option value="PC">PC (Program Coordinator)</option>
-                <option value="COMMITTEE_MEMBER">Committee Member</option>
-                <option value="ADMIN">Admin (System Administrator)</option>
+                <option value="INTERNAL_MEMBERS">INTERNAL MEMBERS (Committee Member)</option>
+                <option value="ADDITIONAL_MEMBERS">ADDITIONAL MEMBERS (Supporting Member)</option>
               </select>
             </div>
             <div>

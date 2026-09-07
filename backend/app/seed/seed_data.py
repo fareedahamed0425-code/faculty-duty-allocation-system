@@ -11,11 +11,11 @@ from app.models.entities import (
 
 ROLES_METADATA = [
     {"name": "ADMIN", "description": "System Administrator with full access", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["all"]},
-    {"name": "DEAN", "description": "Dean of Academic Affairs (Academic governance & reports, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "view_timetables", "view_compliance"]},
-    {"name": "HOD", "description": "Head of Department (Department oversight & approvals, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_department", "view_reports", "manage_substitutions"]},
     {"name": "FACULTY", "description": "Standard Teaching Faculty (Substitution Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties", "request_leaves"]},
-    {"name": "PC", "description": "Program Coordinator (Curriculum & Class Monitoring)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_classes", "view_timetables"]},
-    {"name": "COMMITTEE_MEMBER", "description": "Internal Examination / Disciplinary Committee Member (Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports"]}
+    {"name": "DEAN", "description": "Dean of Academic Affairs (Academic governance & reports, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "view_timetables", "view_compliance"]},
+    {"name": "PC", "description": "Program Coordinator (Curriculum & Class Monitoring, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_classes", "view_timetables"]},
+    {"name": "INTERNAL_MEMBERS", "description": "Internal Members (Institutional Committee & Department Core, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports"]},
+    {"name": "ADDITIONAL_MEMBERS", "description": "Additional Members (Adjunct / Extended Academic Staff, Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties", "request_leaves"]}
 ]
 
 INSTITUTIONAL_MEMBERS = [
@@ -219,7 +219,7 @@ def seed_database(db: Session = None, include_demo_data: bool = False):
             {
                 "rule_key": "rule_4_exemption",
                 "rule_name": "Institutional Exemption Filter",
-                "rule_value": '["ADMIN", "DEAN", "HOD", "PC", "COMMITTEE_MEMBER"]',
+                "rule_value": '["ADMIN", "DEAN", "PC", "INTERNAL_MEMBERS"]',
                 "data_type": "json",
                 "description": "Exempt leadership and administrative positions from substitution allocations",
                 "is_active": True

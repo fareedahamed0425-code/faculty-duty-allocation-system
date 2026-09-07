@@ -44,7 +44,7 @@ The automated allocation engine solves substitution requirements using a strict 
 ---
 
 ### 👥 2. User Registry & Role Governance
-* **Multi-Role Assignment:** Assign and change user roles across **ADMIN**, **DEAN**, **HOD**, **PC** (Program Coordinator), **COMMITTEE_MEMBER**, and **FACULTY**.
+* **Multi-Role Assignment:** Assign and change user roles across **ADMIN**, **FACULTY**, **DEAN**, **PC** (Program Coordinator), **INTERNAL_MEMBERS**, and **ADDITIONAL_MEMBERS**.
 * **Department Affiliation:** Inline re-assignment across academic departments (AIDS, AIML, CSE, CS, CC, AIHC).
 * **Automatic Rule Synchronization:** Toggling role assignments instantly updates Rule 4 exemption and Rule 7 substitution eligibility flags across the live database.
 * **Faculty Directory:** Detailed profile inspection including designation, official email, phone, weekly duty counters, and timetable schedules.
@@ -55,7 +55,7 @@ The automated allocation engine solves substitution requirements using a strict 
 * **Single & Multi-Day Leave Filing:** Record Casual Leave (CL), Medical Leave (ML), On Duty (OD), or Emergency Leaves.
 * **Automatic Class Identification:** The engine maps all timetable periods affected across the absent faculty's schedule.
 * **1-Click Auto-Allocation:** Evaluates all eligible substitute professors and dispatches assignments with zero clashes in $<100\text{ms}$.
-* **Manual Override Support:** Administrators and HODs can manually select candidates from a ranked eligibility leaderboard with full violation audit logs.
+* **Manual Override Support:** Administrators and leadership can manually select candidates from a ranked eligibility leaderboard with full violation audit logs.
 
 ---
 
@@ -73,7 +73,7 @@ The automated allocation engine solves substitution requirements using a strict 
 ---
 
 ### 🤖 6. AI Scheduling Advisor & Operational Assistant
-* **Contextual User Guide:** Guides faculty, HODs, Deans, and Admins through portal operations with plain-language step-by-step instructions.
+* **Contextual User Guide:** Guides faculty, coordinators, Deans, and Admins through portal operations with plain-language step-by-step instructions.
 * **Live Database Grounding:** Queries real-time Neon PostgreSQL tables to report current absences, unallocated classes, active faculty counts, and weekly workload quotas.
 * **Strict Zero-Code Policy:** Designed exclusively for human operational assistance without generating programming code or scripts.
 
@@ -113,7 +113,7 @@ postgresql://neondb_owner:npg_***@ep-orange-violet-az5k58bf-pooler.c-3.ap-southe
 ```
 
 ### Relational Schema (16 Tables)
-1. **`roles`**: System permission tiers (ADMIN, DEAN, HOD, PC, COMMITTEE_MEMBER, FACULTY).
+1. **`roles`**: System permission tiers (ADMIN, FACULTY, DEAN, PC, INTERNAL_MEMBERS, ADDITIONAL_MEMBERS).
 2. **`users`**: Institutional user accounts with bcrypt-hashed credentials and role links.
 3. **`departments`**: Academic divisions (AIDS, AIML, CSE, CS, CC, AIHC).
 4. **`subjects`**: Course catalog with credits and department associations.
@@ -219,20 +219,16 @@ All seeded test accounts use the default password: **`Apollo@2026`**
 
 | Role | Email | Designation | Department |
 | :--- | :--- | :--- | :--- |
-| **⚙️ Admin** | `admin@apollouniversity.edu.in` | System Administrator | CSE |
-| **👑 Dean** | `dean.academics@apollouniversity.edu.in` | Dean of Academic Affairs | CSE |
-| **👔 HOD (CSE)** | `hod.cse@apollouniversity.edu.in` | Professor & Head of Dept | CSE |
-| **👔 HOD (ECE)** | `hod.ece@apollouniversity.edu.in` | Professor & Head of Dept | ECE |
-| **👔 HOD (MECH)** | `hod.mech@apollouniversity.edu.in` | Professor & Head of Dept | MECH |
-| **👔 HOD (MATH)** | `hod.math@apollouniversity.edu.in` | Professor & Head of Dept | MATH |
-| **📋 Coordinator (PC)** | `pc.cse@apollouniversity.edu.in` | Program Coordinator (B.Tech) | CSE |
-| **🛡️ Committee** | `kv.prasad@apollouniversity.edu.in` | Exam Committee Convener | ECE |
-| **👨‍🏫 Faculty** | `arun.kumar@apollouniversity.edu.in` | Assistant Professor | CSE |
-| **👨‍🏫 Faculty** | `priya.nair@apollouniversity.edu.in` | Associate Professor | CSE |
-| **👨‍🏫 Faculty** | `m.ahmed@apollouniversity.edu.in` | Assistant Professor | CSE |
-| **👨‍🏫 Faculty** | `manoj.verma@apollouniversity.edu.in` | Assistant Professor | ECE |
-| **👨‍🏫 Faculty** | `k.suresh@apollouniversity.edu.in` | Assistant Professor | MECH |
-| **👨‍🏫 Faculty** | `deepa.n@apollouniversity.edu.in` | Assistant Professor | MATH |
+| **⚙️ ADMIN** | `admin@apollouniversity.edu.in` | System Administrator | CSE |
+| **👑 DEAN** | `dean.academics@apollouniversity.edu.in` | Dean of Academic Affairs | CSE |
+| **📋 PC** | `pc.cse@apollouniversity.edu.in` | Program Coordinator (B.Tech) | CSE |
+| **🛡️ INTERNAL_MEMBERS** | `kv.prasad@apollouniversity.edu.in` | Internal Committee Member | AIDS |
+| **👨‍🏫 FACULTY** | `arun.kumar@apollouniversity.edu.in` | Assistant Professor | CSE |
+| **👨‍🏫 FACULTY** | `priya.nair@apollouniversity.edu.in` | Associate Professor | AIML |
+| **👨‍🏫 FACULTY** | `m.ahmed@apollouniversity.edu.in` | Assistant Professor | CS |
+| **👨‍🏫 FACULTY** | `manoj.verma@apollouniversity.edu.in` | Assistant Professor | CC |
+| **👨‍🏫 FACULTY** | `k.suresh@apollouniversity.edu.in` | Assistant Professor | AIHC |
+| **👥 ADDITIONAL_MEMBERS** | `deepa.n@apollouniversity.edu.in` | Additional Faculty Member | AIDS |
 
 ---
 

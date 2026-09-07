@@ -36,10 +36,10 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const { user, logout } = useAuth();
   const roleName = user?.role?.name || '';
   const isAdmin = roleName === 'ADMIN';
-  const isFaculty = roleName === 'FACULTY';
-  const isHOD = roleName === 'HOD';
+  const isFaculty = roleName === 'FACULTY' || roleName === 'ADDITIONAL_MEMBERS';
   const isDean = roleName === 'DEAN';
-  const isLeadership = ['DEAN', 'HOD', 'PC', 'COMMITTEE_MEMBER'].includes(roleName);
+  const isPC = roleName === 'PC';
+  const isLeadership = ['DEAN', 'PC', 'INTERNAL_MEMBERS'].includes(roleName);
 
   if (!isOpen) return null;
 
@@ -62,8 +62,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
       id: 'hod-dashboard',
       label: 'Department Overview',
       icon: Building2,
-      visible: isHOD,
-      badge: 'HOD',
+      visible: isPC || isDean || isAdmin,
+      badge: isPC ? 'PC' : undefined,
     },
     {
       id: 'dean-dashboard',
