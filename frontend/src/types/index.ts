@@ -16,6 +16,12 @@ export interface User {
   faculty_id?: number | null;
   faculty_code?: string | null;
   department_name?: string | null;
+  department_id?: number | null;
+  designation?: string | null;
+  phone?: string | null;
+  is_exempt?: boolean | null;
+  is_substitution_eligible?: boolean | null;
+  created_at?: string | null;
 }
 
 export interface Department {
@@ -82,6 +88,9 @@ export interface Absence {
   faculty_code: string;
   department_name: string;
   date: string;
+  end_date?: string | null;
+  leave_type?: string;
+  applied_by_role?: string;
   start_time: string;
   end_time: string;
   is_full_day: boolean;
@@ -93,6 +102,66 @@ export interface Absence {
   unallocated_count: number;
   created_at: string;
 }
+
+export interface AcademicHoliday {
+  id: number;
+  name: string;
+  date: string;
+  holiday_type: 'NATIONAL_HOLIDAY' | 'FESTIVAL' | 'SECOND_SATURDAY' | 'SEMESTER_BREAK' | 'INSTITUTIONAL';
+  academic_year: string;
+  description?: string | null;
+  is_recurring: boolean;
+  created_at: string;
+}
+
+export interface CheckDateResult {
+  date: string;
+  day_name: string;
+  is_holiday: boolean;
+  holiday_name?: string | null;
+  holiday_type?: string | null;
+  is_second_saturday: boolean;
+  is_sunday: boolean;
+  is_working_day: boolean;
+}
+
+export interface ExamDuty {
+  id: number;
+  exam_name: string;
+  course_code?: string | null;
+  course_name: string;
+  date: string;
+  reporting_time: string;
+  exam_start_time: string;
+  exam_end_time: string;
+  venue: string;
+  assigned_faculty_id: number;
+  assigned_faculty_name?: string;
+  assigned_faculty_code?: string;
+  department_name?: string;
+  role_type: string;
+  allotted_by: string;
+  status: 'SCHEDULED' | 'ACKNOWLEDGED' | 'COMPLETED' | 'CANCELLED';
+  instructions?: string | null;
+  created_at: string;
+}
+
+export interface AttendanceStatus {
+  faculty_id: number;
+  faculty_name: string;
+  date: string;
+  status: 'PRESENT' | 'ABSENT' | 'ON_LEAVE';
+  active_leave?: {
+    id: number;
+    leave_type: string;
+    reason: string;
+    from_date: string;
+    to_date: string;
+    is_full_day: boolean;
+  } | null;
+  upcoming_leaves_count: number;
+}
+
 
 export interface SubstitutionRequirement {
   id: number;

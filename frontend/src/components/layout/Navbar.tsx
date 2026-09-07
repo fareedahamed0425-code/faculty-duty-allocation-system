@@ -8,7 +8,14 @@ import {
   CheckCircle2, 
   Menu,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  MapPin,
+  Clock,
+  ClipboardList,
+  Check,
+  Building,
+  UserCheck,
+  AlertCircle
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { NotificationItem } from '../../types';
@@ -34,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [acknowledgedDuties, setAcknowledgedDuties] = useState<Record<number, boolean>>({});
 
   const fetchNotifications = async () => {
     try {
@@ -45,11 +53,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         {
           id: 1,
           user_id: user?.id || 1,
-          title: 'Timetable Active',
-          message: 'Academic Year 2026 Semester 2 Timetable has been synchronized.',
-          notification_type: 'SYSTEM',
+          title: '📋 Exam Duty Allotted',
+          message: 'Mid-Term Examination 2026. Reporting: 08:30 AM | Venue: Exam Hall B-204',
+          notification_type: 'EXAM_DUTY_ALLOCATED',
           is_read: false,
-          metadata_json: {},
+          metadata_json: {
+            duty_id: 1,
+            exam_name: 'Mid-Term Examination 2026',
+            course_name: 'CS301 - Operating Systems',
+            reporting_time: '08:30 AM',
+            exam_start_time: '09:00 AM',
+            exam_end_time: '12:00 PM',
+            venue: 'Exam Hall B-204',
+            role_type: 'Room Invigilator'
+          },
           created_at: new Date().toISOString(),
         }
       ]);
@@ -60,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 15000);
+      const interval = setInterval(fetchNotifications, 12000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -73,6 +90,26 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     setUnreadCount(0);
+  };
+
+  const markSingleAsRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/notifications/${id}/read`);
+    } catch {
+      // ignore
+    }
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  const handleAcknowledgeExamDuty = async (dutyId: number, notifId: number) => {
+    try {
+      await apiClient.patch(`/exam-duties/${dutyId}/acknowledge`);
+      setAcknowledgedDuties(prev => ({ ...prev, [dutyId]: true }));
+      markSingleAsRead(notifId);
+    } catch (err) {
+      console.error('Failed to acknowledge exam duty:', err);
+    }
   };
 
   const todayStr = new Date().toLocaleDateString('en-US', {
@@ -89,6 +126,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         return 'bg-[#dcf1f6] text-[#165369] border-[#bee3ee]';
       case 'DEAN':
         return 'bg-[#fff8eb] text-[#b37d10] border-[#fde6b3]';
+      case 'PC':
+        return 'bg-amber-100 text-amber-900 border-amber-200';
       case 'FACULTY':
       default:
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -166,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{todayStr}</span>
             </div>
 
-            {/* Notification Bell */}
+            {/* Notification Bell & Rich Shade */}
             <div className="relative">
               <button
                 onClick={() => setShowNotifDropdown(!showNotifDropdown)}
@@ -176,17 +215,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-[#fdb931] text-[#0e3b4b] text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center border border-white">
+                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-[#fdb931] text-[#0e3b4b] text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center border border-white animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
-              {/* Responsive Notification Dropdown */}
+              {/* Rich Notification Shade / Drawer */}
               {showNotifDropdown && (
-                <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:right-0 sm:absolute sm:mt-2 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center">
-                    <span className="font-semibold text-sm text-[#0e3b4b]">Notifications</span>
+                <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:right-0 sm:absolute sm:mt-2 w-auto sm:w-[420px] bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-4 pb-2.5 border-b border-slate-100 flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-sm text-[#0e3b4b]">Duty Notification Shade</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#fdb931] text-[#0e3b4b] font-bold">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
@@ -196,31 +242,126 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
                     )}
                   </div>
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
+
+                  <div className="max-h-[440px] overflow-y-auto divide-y divide-slate-100 p-2 space-y-2">
                     {notifications.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400">
+                      <div className="py-8 text-center text-xs text-slate-400">
                         No notifications yet. You're all caught up!
                       </div>
                     ) : (
-                      notifications.slice(0, 6).map((n) => (
-                        <div
-                          key={n.id}
-                          className={`p-3 text-xs hover:bg-slate-50 transition-colors ${
-                            !n.is_read ? 'bg-[#f0f9fb]' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-2.5">
-                            <CheckCircle2 className="w-4 h-4 text-[#2582a1] shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-800">{n.title}</p>
-                              <p className="text-slate-600 mt-0.5 line-clamp-2">{n.message}</p>
-                              <span className="text-[10px] text-slate-400 mt-1 block">
-                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                      notifications.map((n) => {
+                        const meta = n.metadata_json || {};
+                        const isExam = n.notification_type === 'EXAM_DUTY_ALLOCATED';
+                        const isSub = n.notification_type === 'SUBSTITUTION_ASSIGNED';
+                        const dutyId = meta.duty_id;
+                        const isAcknowledged = dutyId ? acknowledgedDuties[dutyId] : false;
+
+                        if (isExam) {
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => !n.is_read && markSingleAsRead(n.id)}
+                              className={`p-3.5 rounded-xl border transition-all ${
+                                !n.is_read 
+                                  ? 'bg-[#fffdf5] border-[#fde6b3] shadow-xs' 
+                                  : 'bg-white border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#fdb931] text-[#0e3b4b] font-bold uppercase tracking-wider">
+                                    Exam Duty
+                                  </span>
+                                  {meta.role_type && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                                      {meta.role_type}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400">
+                                  {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+
+                              <p className="font-bold text-slate-900 text-xs mt-2">
+                                {meta.exam_name || n.title}
+                              </p>
+                              {meta.course_name && (
+                                <p className="text-[11px] text-slate-600 font-medium">{meta.course_name}</p>
+                              )}
+
+                              {/* Rich Metrics: Reporting Time & Venue */}
+                              <div className="mt-2.5 grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                <div className="flex items-center space-x-1.5 text-amber-900 font-semibold">
+                                  <Clock className="w-3.5 h-3.5 text-[#b37d10] shrink-0" />
+                                  <div>
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-bold">Reporting</span>
+                                    <span>{meta.reporting_time || '08:30 AM'}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-1.5 text-slate-800 font-semibold">
+                                  <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                  <div>
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-bold">Venue / Hall</span>
+                                    <span className="truncate block max-w-[120px]">{meta.venue || 'Exam Hall B-204'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {meta.exam_start_time && (
+                                <p className="text-[10px] text-slate-500 mt-1.5">
+                                  Exam Timing: <strong>{meta.exam_start_time} - {meta.exam_end_time}</strong>
+                                </p>
+                              )}
+
+                              {/* Interactive Acknowledge Action Button */}
+                              {dutyId && (
+                                <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-end">
+                                  {isAcknowledged ? (
+                                    <span className="inline-flex items-center space-x-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                      <Check className="w-3 h-3" />
+                                      <span>Duty Acknowledged</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAcknowledgeExamDuty(dutyId, n.id);
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg bg-[#0e3b4b] hover:bg-[#165369] text-white text-[11px] font-bold shadow-xs transition-colors flex items-center space-x-1 cursor-pointer"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                      <span>Acknowledge Duty</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        // Default / Substitution / General Card
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => !n.is_read && markSingleAsRead(n.id)}
+                            className={`p-3 rounded-xl border text-xs transition-colors ${
+                              !n.is_read ? 'bg-[#f0f9fb] border-[#bee3ee]' : 'bg-white border-slate-100 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-start space-x-2.5">
+                              <CheckCircle2 className="w-4 h-4 text-[#2582a1] shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="font-semibold text-slate-900">{n.title}</p>
+                                <p className="text-slate-600 mt-0.5 text-[11px]">{n.message}</p>
+                                <span className="text-[10px] text-slate-400 mt-1 block">
+                                  {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>

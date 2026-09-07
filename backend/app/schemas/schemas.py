@@ -27,18 +27,34 @@ class UserOut(BaseModel):
     id: int
     email: str
     full_name: str
-    role: RoleOut
+    role: Optional[RoleOut] = None
     is_active: bool
     faculty_id: Optional[int] = None
     faculty_code: Optional[str] = None
     department_name: Optional[str] = None
+    department_id: Optional[int] = None
+    designation: Optional[str] = None
+    phone: Optional[str] = None
+    is_exempt: Optional[bool] = None
+    is_substitution_eligible: Optional[bool] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
+class UserCreate(BaseModel):
+    email: str
+    full_name: str
+    role_name: str = "FACULTY"
+    department_id: Optional[int] = None
+    designation: Optional[str] = None
+    phone: Optional[str] = None
+    password: Optional[str] = "Apollo@2026"
+
 class UserRoleUpdate(BaseModel):
     role_name: str
     department_id: Optional[int] = None
+    designation: Optional[str] = None
 
 class UserStatusUpdate(BaseModel):
     is_active: bool
@@ -191,15 +207,42 @@ class TimetableImportConfirm(BaseModel):
     activate_immediately: bool = True
     entries: List[Dict[str, Any]]
 
-# --- Absences ---
+# --- Absences & Leaves ---
 class AbsenceCreate(BaseModel):
     faculty_id: int
     date: date
+    end_date: Optional[date] = None
+    leave_type: str = "CASUAL"  # CASUAL, MEDICAL, ON_DUTY, LONG_LEAVE, EMERGENCY, OTHER
     start_time: str = "00:00"
     end_time: str = "23:59"
     is_full_day: bool = True
     reason: Optional[str] = None
     auto_allocate: bool = True
+
+class AdvanceLeaveCreate(BaseModel):
+    faculty_id: Optional[int] = None  # If not provided, taken from current authenticated user
+    from_date: date
+    to_date: date
+    leave_type: str = "CASUAL"
+    reason: str
+    is_full_day: bool = True
+    start_time: str = "00:00"
+    end_time: str = "23:59"
+    auto_allocate: bool = True
+
+class AttendanceToggleRequest(BaseModel):
+    faculty_id: Optional[int] = None
+    target_date: Optional[date] = None
+    status: str = "PRESENT"  # PRESENT, ABSENT
+    reason: Optional[str] = None
+
+class AttendanceStatusOut(BaseModel):
+    faculty_id: int
+    faculty_name: str
+    date: date
+    status: str  # PRESENT, ABSENT, ON_LEAVE
+    active_leave: Optional[Dict[str, Any]] = None
+    upcoming_leaves_count: int = 0
 
 class AbsenceOut(BaseModel):
     id: int
@@ -208,6 +251,9 @@ class AbsenceOut(BaseModel):
     faculty_code: str
     department_name: str
     date: date
+    end_date: Optional[date] = None
+    leave_type: str = "CASUAL"
+    applied_by_role: str = "FACULTY"
     start_time: str
     end_time: str
     is_full_day: bool
@@ -221,6 +267,77 @@ class AbsenceOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- Academic Holidays ---
+class AcademicHolidayCreate(BaseModel):
+    name: str
+    date: date
+    holiday_type: str = "NATIONAL_HOLIDAY"  # NATIONAL_HOLIDAY, FESTIVAL, SECOND_SATURDAY, SEMESTER_BREAK, INSTITUTIONAL
+    academic_year: str = "2026"
+    description: Optional[str] = None
+    is_recurring: bool = False
+
+class AcademicHolidayOut(BaseModel):
+    id: int
+    name: str
+    date: date
+    holiday_type: str
+    academic_year: str
+    description: Optional[str] = None
+    is_recurring: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CheckDateOut(BaseModel):
+    date: date
+    day_name: str
+    is_holiday: bool
+    holiday_name: Optional[str] = None
+    holiday_type: Optional[str] = None
+    is_second_saturday: bool
+    is_sunday: bool
+    is_working_day: bool
+
+# --- Exam Duties ---
+class ExamDutyCreate(BaseModel):
+    exam_name: str
+    course_code: Optional[str] = None
+    course_name: str
+    date: date
+    reporting_time: str  # e.g. "08:30 AM"
+    exam_start_time: str  # e.g. "09:00 AM"
+    exam_end_time: str  # e.g. "12:00 PM"
+    venue: str  # e.g. "Exam Hall B-204"
+    assigned_faculty_id: int
+    role_type: str = "Room Invigilator"  # Room Invigilator, Chief Superintendent, Hall Supervisor, Flying Squad, Reliever
+    target_roles: List[str] = ["FACULTY", "DEAN", "PC"]
+    instructions: Optional[str] = None
+
+class ExamDutyOut(BaseModel):
+    id: int
+    exam_name: str
+    course_code: Optional[str] = None
+    course_name: str
+    date: date
+    reporting_time: str
+    exam_start_time: str
+    exam_end_time: str
+    venue: str
+    assigned_faculty_id: int
+    assigned_faculty_name: Optional[str] = None
+    assigned_faculty_code: Optional[str] = None
+    department_name: Optional[str] = None
+    role_type: str
+    allotted_by: str
+    status: str
+    instructions: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 # --- Substitution Requirements & Duties ---
 class SubstitutionRequirementOut(BaseModel):
@@ -392,4 +509,4 @@ class AIChatResponse(BaseModel):
     reply: str
     tool_calls: List[Dict[str, Any]] = []
     facts_grounded: bool = True
-    actions_taken: List[Dict[str, Any]] = []
+    actions_taken: List[Any] = []

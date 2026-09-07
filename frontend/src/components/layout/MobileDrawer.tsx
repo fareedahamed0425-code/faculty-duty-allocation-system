@@ -122,6 +122,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
       visible: isAdmin || isLeadership,
     },
     {
+      id: 'academic-calendar',
+      label: 'Academic Calendar',
+      icon: Calendar,
+      visible: true,
+      badge: '2026',
+    },
+    {
       id: 'ai-assistant',
       label: 'AI Assistant',
       icon: Bot,

@@ -158,6 +158,9 @@ class Absence(Base):
     id = Column(Integer, primary_key=True, index=True)
     faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=True)  # for multi-day / long leave ranges
+    leave_type = Column(String(50), default="CASUAL")  # CASUAL, MEDICAL, ON_DUTY, LONG_LEAVE, EMERGENCY, OTHER
+    applied_by_role = Column(String(50), default="FACULTY")  # FACULTY, DEAN, HOD, PC, ADMIN
     start_time = Column(String(10), default="00:00")
     end_time = Column(String(10), default="23:59")
     is_full_day = Column(Boolean, default=True)
@@ -238,6 +241,43 @@ class SubstitutionDuty(Base):
     )
 
 
+class AcademicHoliday(Base):
+    __tablename__ = "academic_holidays"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    date = Column(Date, nullable=False, unique=True, index=True)
+    holiday_type = Column(String(50), default="NATIONAL_HOLIDAY")  # NATIONAL_HOLIDAY, FESTIVAL, SECOND_SATURDAY, SEMESTER_BREAK, INSTITUTIONAL
+    academic_year = Column(String(20), default="2026")
+    description = Column(String(255), nullable=True)
+    is_recurring = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ExamDuty(Base):
+    __tablename__ = "exam_duties"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exam_name = Column(String(150), nullable=False)  # e.g., Mid-Term Examination Spring 2026
+    course_code = Column(String(30), nullable=True)  # e.g., CS301
+    course_name = Column(String(150), nullable=False)  # e.g., Operating Systems & System Programming
+    date = Column(Date, nullable=False, index=True)
+    reporting_time = Column(String(20), nullable=False)  # e.g., "08:30 AM"
+    exam_start_time = Column(String(20), nullable=False)  # e.g., "09:00 AM"
+    exam_end_time = Column(String(20), nullable=False)  # e.g., "12:00 PM"
+    venue = Column(String(100), nullable=False)  # e.g., Exam Hall B-204, Block-3
+    assigned_faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False, index=True)
+    role_type = Column(String(50), default="Room Invigilator")  # Room Invigilator, Chief Superintendent, Hall Supervisor, Flying Squad, Reliever
+    allotted_by = Column(String(100), default="Admin / Exam Cell")
+    target_roles = Column(JSON, default=lambda: ["FACULTY", "DEAN", "PC"])
+    status = Column(String(30), default="SCHEDULED")  # SCHEDULED, ACKNOWLEDGED, COMPLETED, CANCELLED
+    instructions = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assigned_faculty = relationship("Faculty", foreign_keys=[assigned_faculty_id])
+
+
 class SystemRule(Base):
     __tablename__ = "system_rules"
 
@@ -256,13 +296,13 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    event_type = Column(String(50), nullable=False, index=True)  # ALLOCATION_GENERATED, MANUAL_OVERRIDE, ABSENCE_CREATED, etc.
+    event_type = Column(String(50), nullable=False, index=True)  # ALLOCATION_GENERATED, MANUAL_OVERRIDE, ABSENCE_CREATED, EXAM_DUTY_ALLOCATED, etc.
     actor_id = Column(Integer, nullable=True)
     actor_name = Column(String(100), default="System")
-    target_type = Column(String(50), nullable=True)  # SUBSTITUTION_DUTY, ABSENCE, TIMETABLE
+    target_type = Column(String(50), nullable=True)  # SUBSTITUTION_DUTY, ABSENCE, TIMETABLE, EXAM_DUTY
     target_id = Column(Integer, nullable=True)
     requirement_id = Column(Integer, nullable=True, index=True)
-    details = Column(JSON, default=dict)  # structured record: candidates, rejections with reasons, scores, etc.
+    details = Column(JSON, default=dict)  # structured record
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
@@ -273,9 +313,10 @@ class Notification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(150), nullable=False)
     message = Column(Text, nullable=False)
-    notification_type = Column(String(50), default="SUBSTITUTION_ASSIGNED")
+    notification_type = Column(String(50), default="SUBSTITUTION_ASSIGNED")  # SUBSTITUTION_ASSIGNED, EXAM_DUTY_ALLOCATED, LEAVE_APPLIED, ATTENDANCE_UPDATE, SYSTEM
     is_read = Column(Boolean, default=False, index=True)
     metadata_json = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="notifications")
+

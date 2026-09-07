@@ -235,6 +235,42 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onNavigate, onOpenAI
           </div>
         </div>
       </div>
+
+      {/* Department Attendance & Advance Leaves Overview */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-bold text-[#0e3b4b]">Department Faculty Availability & Leave Overview</h2>
+            <p className="text-xs text-slate-500">Live attendance sync with Admin and Faculty portals</p>
+          </div>
+          <button
+            onClick={() => onNavigate('absences')}
+            className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
+          >
+            Manage Department Absences →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Present on Duty Today</span>
+            <span className="text-2xl font-extrabold text-emerald-700">{activeCount} Faculty</span>
+            <span className="text-xs text-slate-400 block mt-1">Ready for scheduled sessions</span>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">On Planned Leave</span>
+            <span className="text-2xl font-extrabold text-rose-700">{deptFaculty.length - activeCount} Faculty</span>
+            <span className="text-xs text-slate-400 block mt-1">Automatic substitution engaged</span>
+          </div>
+          <div className="p-4 rounded-xl bg-[#f0f9fb] border border-[#bee3ee]">
+            <span className="text-xs font-bold text-[#0e3b4b] uppercase tracking-wider block mb-1">Department Operations</span>
+            <p className="text-xs text-[#165369] mt-1 font-medium">
+              Advance duty allocations can be monitored and overridden directly by Department Chairs & Coordinators.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+

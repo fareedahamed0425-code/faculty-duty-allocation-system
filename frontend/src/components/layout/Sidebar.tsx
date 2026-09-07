@@ -130,6 +130,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       visible: isAdmin || isLeadership 
     },
     { 
+      id: 'academic-calendar', 
+      label: 'Academic Calendar', 
+      shortLabel: 'Calendar',
+      icon: Calendar, 
+      visible: true,
+      badge: '2026'
+    },
+    { 
       id: 'ai-assistant', 
       label: 'Apollo AI Advisor', 
       shortLabel: 'AI Advisor',

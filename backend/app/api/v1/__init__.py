@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.api.v1 import (
     auth, users, faculty, timetables, absences, substitutions, reports,
-    notifications, system_rules, audit, ai
+    notifications, system_rules, audit, ai, academic_calendar, exam_duties
 )
 
 api_router = APIRouter()
@@ -12,8 +12,11 @@ api_router.include_router(faculty.router, prefix="/faculty", tags=["Faculty Mana
 api_router.include_router(timetables.router, prefix="/timetables", tags=["Timetables"])
 api_router.include_router(absences.router, prefix="/absences", tags=["Absences"])
 api_router.include_router(substitutions.router, prefix="/substitutions", tags=["Substitutions"])
+api_router.include_router(academic_calendar.router, prefix="/academic-calendar", tags=["Academic Calendar"])
+api_router.include_router(exam_duties.router, prefix="/exam-duties", tags=["Exam Duties"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports & Analytics"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(system_rules.router, prefix="/system-rules", tags=["System Rules"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Audit Trail"])
 api_router.include_router(ai.router, prefix="/ai", tags=["AI Assistant"])
+

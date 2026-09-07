@@ -1,30 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import { SubstitutionDuty, SubstitutionRequirement } from '../types';
+import { SubstitutionDuty, SubstitutionRequirement, CheckDateResult } from '../types';
 import { AllocationReasoningModal } from '../components/allocation/AllocationReasoningModal';
 import { ManualOverrideModal } from '../components/allocation/ManualOverrideModal';
 import {
   HelpCircle,
   Edit3,
-  Play
+  Play,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Filter,
+  CheckCircle2,
+  CalendarDays
 } from 'lucide-react';
 
 export const SubstitutionsPage: React.FC = () => {
   const [duties, setDuties] = useState<SubstitutionDuty[]>([]);
   const [requirements, setRequirements] = useState<SubstitutionRequirement[]>([]);
   const [activeTab, setActiveTab] = useState<'duties' | 'unallocated'>('duties');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [dateCheck, setDateCheck] = useState<CheckDateResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Modals
   const [reasoningDutyId, setReasoningDutyId] = useState<number | null>(null);
   const [overrideDuty, setOverrideDuty] = useState<SubstitutionDuty | null>(null);
 
-  const fetchSubstitutions = async () => {
+  const fetchSubstitutions = async (targetD?: string) => {
     setIsLoading(true);
     try {
+      const dutiesUrl = targetD ? `/substitutions/duties?target_date=${targetD}` : '/substitutions/duties';
+      const reqsUrl = targetD ? `/substitutions/requirements?target_date=${targetD}` : '/substitutions/requirements';
+
       const [dutiesRes, reqsRes] = await Promise.all([
-        apiClient.get<SubstitutionDuty[]>('/substitutions/duties'),
-        apiClient.get<SubstitutionRequirement[]>('/substitutions/requirements'),
+        apiClient.get<SubstitutionDuty[]>(dutiesUrl),
+        apiClient.get<SubstitutionRequirement[]>(reqsUrl),
       ]);
       setDuties(dutiesRes.data);
       setRequirements(reqsRes.data);
@@ -35,14 +47,39 @@ export const SubstitutionsPage: React.FC = () => {
     }
   };
 
+  const checkSelectedDateStatus = async (dStr: string) => {
+    if (!dStr) {
+      setDateCheck(null);
+      return;
+    }
+    try {
+      const res = await apiClient.get<CheckDateResult>(`/academic-calendar/check-date?target_date=${dStr}`);
+      setDateCheck(res.data);
+    } catch {
+      setDateCheck(null);
+    }
+  };
+
   useEffect(() => {
-    fetchSubstitutions();
-  }, []);
+    fetchSubstitutions(selectedDate);
+    checkSelectedDateStatus(selectedDate);
+  }, [selectedDate]);
+
+  const handleDateChange = (newD: string) => {
+    setSelectedDate(newD);
+  };
+
+  const handleShiftDate = (days: number) => {
+    const base = selectedDate ? new Date(selectedDate) : new Date();
+    base.setDate(base.getDate() + days);
+    const dStr = base.toISOString().split('T')[0];
+    setSelectedDate(dStr);
+  };
 
   const handleAllocateRequirement = async (reqId: number) => {
     try {
       await apiClient.post(`/substitutions/requirements/${reqId}/allocate`);
-      fetchSubstitutions();
+      fetchSubstitutions(selectedDate);
     } catch (err) {
       console.error('Allocation failed:', err);
     }
@@ -51,7 +88,7 @@ export const SubstitutionsPage: React.FC = () => {
   const handleBatchAllocate = async () => {
     try {
       await apiClient.post('/substitutions/requirements/batch-allocate', { requirement_ids: [] });
-      fetchSubstitutions();
+      fetchSubstitutions(selectedDate);
     } catch (err) {
       console.error('Batch allocation failed:', err);
     }
@@ -61,14 +98,14 @@ export const SubstitutionsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header & Batch Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#0e3b4b] tracking-tight">
-            Substitution Duties & Allocation Engine
+            Substitution Duties & Advance Allocation Engine
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Manage scheduled substitution assignments, inspect factual audit reasoning, and resolve unallocated classes.
+            Pre-hand scheduling, audit reasoning inspection, academic calendar checks, and resolution of unallocated classes.
           </p>
         </div>
         <button
@@ -78,6 +115,68 @@ export const SubstitutionsPage: React.FC = () => {
           <Play className="w-3.5 h-3.5" />
           <span>Batch Auto-Allocate All</span>
         </button>
+      </div>
+
+      {/* Advance Date Selector & Academic Calendar Toolbar */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => handleShiftDate(-1)}
+              title="Previous Day"
+              className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="px-3 py-1 text-xs bg-white rounded-lg border border-slate-200 font-bold text-[#0e3b4b] focus:ring-2 focus:ring-[#2582a1]"
+            />
+            <button
+              onClick={() => handleShiftDate(1)}
+              title="Next Day"
+              className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-[#f0f9fb] text-[#2582a1] hover:bg-[#dcf1f6] border border-[#bee3ee] transition-colors cursor-pointer"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => handleDateChange('')}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+          >
+            Show All Dates
+          </button>
+        </div>
+
+        {/* Academic Holiday / 2nd Saturday Indicator Badge */}
+        {dateCheck && (
+          <div className={`px-3.5 py-1.5 rounded-xl border text-xs flex items-center space-x-2 ${
+            dateCheck.is_holiday 
+              ? 'bg-amber-50 border-amber-200 text-amber-900' 
+              : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          }`}>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span className="font-bold">{dateCheck.day_name}:</span>
+            <span>
+              {dateCheck.is_second_saturday 
+                ? 'Institutional Non-Working Day (Second Saturday)' 
+                : dateCheck.is_sunday
+                ? 'Weekly Off (Sunday)'
+                : dateCheck.holiday_name
+                ? `Holiday: ${dateCheck.holiday_name}`
+                : 'Regular Working Day'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Navigation Tabs */}
@@ -90,7 +189,7 @@ export const SubstitutionsPage: React.FC = () => {
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <span>Active Duties & Allocations</span>
+          <span>Active Duties & Advance Allocations</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-[#f0f9fb] text-[#2582a1] font-bold border border-[#bee3ee]">
             {duties.length}
           </span>

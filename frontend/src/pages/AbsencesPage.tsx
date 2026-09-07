@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import { Absence, Faculty } from '../types';
+import { Absence, Faculty, CheckDateResult } from '../types';
 import { Modal } from '../components/common/Modal';
-import { Plus, CheckCircle2, Trash2 } from 'lucide-react';
+import { Plus, CheckCircle2, Trash2, Calendar, CalendarDays } from 'lucide-react';
 
 export const AbsencesPage: React.FC = () => {
   const [absences, setAbsences] = useState<Absence[]>([]);
@@ -10,6 +10,9 @@ export const AbsencesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | ''>('');
   const [absenceDate, setAbsenceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [absenceEndDate, setAbsenceEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [leaveType, setLeaveType] = useState<string>('CASUAL');
+  const [dateCheck, setDateCheck] = useState<CheckDateResult | null>(null);
   const [isFullDay, setIsFullDay] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('13:00');
@@ -31,8 +34,18 @@ export const AbsencesPage: React.FC = () => {
     }
   };
 
+  const checkSelectedDate = async (dStr: string) => {
+    try {
+      const res = await apiClient.get<CheckDateResult>(`/academic-calendar/check-date?target_date=${dStr}`);
+      setDateCheck(res.data);
+    } catch {
+      setDateCheck(null);
+    }
+  };
+
   useEffect(() => {
     fetchAbsences();
+    checkSelectedDate(absenceDate);
   }, []);
 
   const handleRecordAbsence = async (e: React.FormEvent) => {
@@ -46,6 +59,8 @@ export const AbsencesPage: React.FC = () => {
       const res = await apiClient.post('/absences', {
         faculty_id: Number(selectedFacultyId),
         date: absenceDate,
+        end_date: absenceEndDate >= absenceDate ? absenceEndDate : undefined,
+        leave_type: leaveType,
         is_full_day: isFullDay,
         start_time: isFullDay ? '00:00' : startTime,
         end_time: isFullDay ? '23:59' : endTime,
@@ -72,6 +87,7 @@ export const AbsencesPage: React.FC = () => {
       console.error('Failed to cancel absence:', err);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -128,8 +144,17 @@ export const AbsencesPage: React.FC = () => {
                       <span className="text-[11px] text-slate-400 font-mono">{a.faculty_code} • {a.department_name}</span>
                     </td>
                     <td className="p-4">
-                      <span className="font-bold text-slate-800 block">{a.date}</span>
-                      <span className="text-[11px] text-slate-500">{a.is_full_day ? 'Full Day' : `${a.start_time} - ${a.end_time}`}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-slate-800">
+                          {a.end_date && a.end_date !== a.date ? `${a.date} → ${a.end_date}` : a.date}
+                        </span>
+                        {a.leave_type && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                            {a.leave_type}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">{a.is_full_day ? 'Full Day' : `${a.start_time} - ${a.end_time}`}</span>
                     </td>
                     <td className="p-4 text-slate-600">
                       {a.reason || 'Not specified'}
@@ -177,15 +202,15 @@ export const AbsencesPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Record Faculty Absence & Run Engine"
-        subtitle="The scheduling engine will automatically discover timetable conflicts and assign substitutes."
+        title="Record Faculty Absence & Leave"
+        subtitle="The scheduling engine will automatically discover timetable conflicts and pre-assign substitutes."
         maxWidth="lg"
       >
         {!successResult ? (
           <form onSubmit={handleRecordAbsence} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Absent Faculty
+                Faculty Member
               </label>
               <select
                 value={selectedFacultyId}
@@ -205,27 +230,82 @@ export const AbsencesPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Absence Date
+                  From Date (Start)
                 </label>
                 <input
                   type="date"
                   value={absenceDate}
-                  onChange={(e) => setAbsenceDate(e.target.value)}
+                  onChange={(e) => {
+                    setAbsenceDate(e.target.value);
+                    checkSelectedDate(e.target.value);
+                  }}
                   className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
                   required
                 />
               </div>
-              <div className="flex items-center pt-5">
-                <label className="flex items-center space-x-2 text-xs font-bold text-slate-800 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isFullDay}
-                    onChange={(e) => setIsFullDay(e.target.checked)}
-                    className="rounded text-[#2582a1] focus:ring-[#2582a1]"
-                  />
-                  <span>Full Day Absence</span>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  To Date (Upto When)
                 </label>
+                <input
+                  type="date"
+                  value={absenceEndDate}
+                  min={absenceDate}
+                  onChange={(e) => setAbsenceEndDate(e.target.value)}
+                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                  required
+                />
               </div>
+            </div>
+
+            {/* Academic Calendar Badge & Warning */}
+            {dateCheck && (
+              <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+                dateCheck.is_holiday 
+                  ? 'bg-amber-50 border-amber-200 text-amber-900' 
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-amber-700 shrink-0" />
+                  <div>
+                    <span className="font-bold block">
+                      {dateCheck.day_name}, {dateCheck.date}
+                    </span>
+                    <span className="text-[11px]">
+                      {dateCheck.is_second_saturday 
+                        ? '⚠️ Institutional Non-Working Day (Second Saturday)' 
+                        : dateCheck.is_sunday
+                        ? '⚠️ Weekly Off (Sunday)'
+                        : dateCheck.holiday_name
+                        ? `🎉 Holiday: ${dateCheck.holiday_name}`
+                        : '✓ Regular Academic Working Day'}
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  dateCheck.is_working_day ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {dateCheck.is_working_day ? 'Working Day' : 'Holiday / Off'}
+                </span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Leave Type
+              </label>
+              <select
+                value={leaveType}
+                onChange={(e) => setLeaveType(e.target.value)}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
+              >
+                <option value="CASUAL">Casual Leave (CL)</option>
+                <option value="MEDICAL">Medical Leave (ML)</option>
+                <option value="ON_DUTY">On Duty / Academic Deputation (OD)</option>
+                <option value="LONG_LEAVE">Long Leave / Sabbatical</option>
+                <option value="EMERGENCY">Emergency Leave</option>
+                <option value="OTHER">Other</option>
+              </select>
             </div>
 
             {!isFullDay && (

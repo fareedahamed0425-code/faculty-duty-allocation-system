@@ -183,6 +183,42 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onNavigate, onOpen
           </table>
         </div>
       </div>
+
+      {/* University Attendance & Scheduled Leaves Overview */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-bold text-[#0e3b4b]">Institutional Faculty Availability & Advance Leaves</h2>
+            <p className="text-xs text-slate-500">Live synchronization with HOD, PC, Dean, and Admin portals</p>
+          </div>
+          <button
+            onClick={() => onNavigate('absences')}
+            className="text-xs text-[#2582a1] hover:text-[#165369] font-bold cursor-pointer"
+          >
+            Manage Leaves & Substitutions →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Active Teaching Faculty</span>
+            <span className="text-2xl font-extrabold text-emerald-700">{faculty.filter(f => f.status === 'ACTIVE').length}</span>
+            <span className="text-xs text-slate-400 block mt-1">Present on campus today</span>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">On Approved Leave</span>
+            <span className="text-2xl font-extrabold text-rose-700">{faculty.filter(f => f.status === 'ON_LEAVE').length}</span>
+            <span className="text-xs text-slate-400 block mt-1">100% lecture coverage allocated</span>
+          </div>
+          <div className="p-4 rounded-xl bg-[#f0f9fb] border border-[#bee3ee]">
+            <span className="text-xs font-bold text-[#0e3b4b] uppercase tracking-wider block mb-1">Academic Governance</span>
+            <p className="text-xs text-[#165369] mt-1 font-medium">
+              Advance leave requests across departments are pre-checked against academic calendar non-working days.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+

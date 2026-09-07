@@ -18,6 +18,7 @@ import { SystemRulesPage } from './pages/SystemRulesPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { UserManagement } from './pages/UserManagement';
+import { AcademicCalendarPage } from './pages/AcademicCalendarPage';
 import { AIAssistantDrawer } from './components/ai/AIAssistantDrawer';
 
 const MainApp: React.FC = () => {
@@ -126,6 +127,7 @@ const MainApp: React.FC = () => {
             {activeTab === 'timetables' && <TimetablePage />}
             {activeTab === 'absences' && <AbsencesPage />}
             {activeTab === 'substitutions' && <SubstitutionsPage />}
+            {activeTab === 'academic-calendar' && <AcademicCalendarPage />}
             {activeTab === 'reports' && <ReportsPage />}
             {activeTab === 'rules' && <SystemRulesPage />}
             {activeTab === 'audit' && <AuditLogsPage />}

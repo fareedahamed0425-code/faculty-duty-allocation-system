@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import { DashboardStats, SubstitutionRequirement, Faculty } from '../types';
+import { DashboardStats, SubstitutionRequirement, Faculty, CheckDateResult, User } from '../types';
 import { StatCard } from '../components/common/StatCard';
 import { Modal } from '../components/common/Modal';
 import { AllocationReasoningModal } from '../components/allocation/AllocationReasoningModal';
@@ -12,7 +12,16 @@ import {
   AlertTriangle,
   Plus,
   Play,
-  Sparkles
+  Sparkles,
+  FileText,
+  Calendar,
+  Clock,
+  MapPin,
+  CalendarDays,
+  ShieldCheck,
+  Building2,
+  Mail,
+  UserPlus
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -24,16 +33,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentDuties, setRecentDuties] = useState<any[]>([]);
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
+  const [userList, setUserList] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Quick Absence Modal State
+  // Quick Absence / Advance Leave Modal State
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | ''>('');
   const [absenceDate, setAbsenceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [absenceEndDate, setAbsenceEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [leaveType, setLeaveType] = useState<string>('CASUAL');
   const [absenceReason, setAbsenceReason] = useState<string>('');
   const [autoAllocate, setAutoAllocate] = useState<boolean>(true);
   const [isSubmittingAbsence, setIsSubmittingAbsence] = useState(false);
   const [absenceSuccessMsg, setAbsenceSuccessMsg] = useState<string | null>(null);
+
+  // Exam Duty Modal State
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [examFacultyId, setExamFacultyId] = useState<number | ''>('');
+  const [examName, setExamName] = useState('Mid-Term Examination 2026');
+  const [courseName, setCourseName] = useState('CS301 - Operating Systems');
+  const [examDate, setExamDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [reportingTime, setReportingTime] = useState('08:30 AM');
+  const [examStartTime, setExamStartTime] = useState('09:00 AM');
+  const [examEndTime, setExamEndTime] = useState('12:00 PM');
+  const [examVenue, setExamVenue] = useState('Exam Hall B-204');
+  const [examRole, setExamRole] = useState('Room Invigilator');
+  const [isSubmittingExam, setIsSubmittingExam] = useState(false);
+  const [examSuccessMsg, setExamSuccessMsg] = useState<string | null>(null);
+
+  // Calendar Check for selected date
+  const [dateCheck, setDateCheck] = useState<CheckDateResult | null>(null);
 
   // Reasoning Modal
   const [selectedDutyId, setSelectedDutyId] = useState<number | null>(null);
@@ -41,14 +70,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, dutiesRes, facRes] = await Promise.all([
+      const [statsRes, dutiesRes, facRes, usersRes] = await Promise.all([
         apiClient.get<DashboardStats>('/reports/dashboard'),
         apiClient.get<any[]>('/substitutions/duties'),
         apiClient.get<Faculty[]>('/faculty'),
+        apiClient.get<User[]>('/users'),
       ]);
       setStats(statsRes.data);
       setRecentDuties(dutiesRes.data.slice(0, 6));
       setFacultyList(facRes.data);
+      setUserList(usersRes.data);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -56,8 +87,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     }
   };
 
+  const checkSelectedDate = async (dateStr: string) => {
+    try {
+      const res = await apiClient.get<CheckDateResult>(`/academic-calendar/check-date?target_date=${dateStr}`);
+      setDateCheck(res.data);
+    } catch {
+      setDateCheck(null);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    checkSelectedDate(absenceDate);
   }, []);
 
   const handleRecordAbsence = async (e: React.FormEvent) => {
@@ -71,13 +112,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       const res = await apiClient.post('/absences', {
         faculty_id: Number(selectedFacultyId),
         date: absenceDate,
+        end_date: absenceEndDate >= absenceDate ? absenceEndDate : undefined,
+        leave_type: leaveType,
         reason: absenceReason || 'Reported via Dashboard',
         auto_allocate: autoAllocate,
       });
       const data = res.data;
       setAbsenceSuccessMsg(
-        `Absence recorded! Discovered ${data.affected_classes_count} affected class(es). ${
-          autoAllocate ? `Auto-allocated ${data.allocation_results?.filter((r: any) => r.status === 'ALLOCATED').length} substitute(s).` : ''
+        `Absence recorded from ${data.from_date || data.date} to ${data.to_date || data.date}! Discovered ${data.affected_classes_count} affected class(es). ${
+          autoAllocate ? `Auto-allocated ${data.allocation_results?.filter((r: any) => r.status === 'ALLOCATED').length || 0} substitute(s).` : ''
         }`
       );
       setTimeout(() => {
@@ -91,6 +134,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       alert(err.response?.data?.detail || 'Failed to record absence.');
     } finally {
       setIsSubmittingAbsence(false);
+    }
+  };
+
+  const handleAllocateExamDuty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!examFacultyId) return;
+
+    setIsSubmittingExam(true);
+    setExamSuccessMsg(null);
+
+    try {
+      await apiClient.post('/exam-duties', {
+        assigned_faculty_id: Number(examFacultyId),
+        exam_name: examName,
+        course_name: courseName,
+        date: examDate,
+        reporting_time: reportingTime,
+        exam_start_time: examStartTime,
+        exam_end_time: examEndTime,
+        venue: examVenue,
+        role_type: examRole,
+        target_roles: ["FACULTY", "DEAN", "PC"]
+      });
+      setExamSuccessMsg('Exam duty allotted! Notification sent directly to faculty shade.');
+      setTimeout(() => {
+        setIsExamModalOpen(false);
+        setExamSuccessMsg(null);
+        fetchDashboardData();
+      }, 1500);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to allocate exam duty.');
+    } finally {
+      setIsSubmittingExam(false);
     }
   };
 
@@ -117,31 +193,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time timetable monitoring, automatic absence compensation, and workload fairness.
+            Real-time timetable monitoring, advance absence allocation, academic calendar sync, and exam duty orchestration.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => onNavigate('users')}
-            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl bg-[#0e3b4b] hover:bg-[#165369] text-white text-xs font-bold transition-colors flex items-center space-x-1.5 shadow-xs cursor-pointer"
           >
-            <Users className="w-3.5 h-3.5 text-[#fdb931]" />
+            <ShieldCheck className="w-4 h-4 text-[#fdb931]" />
             <span>Manage Users & Roles</span>
           </button>
           <button
+            onClick={() => onNavigate('academic-calendar')}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <CalendarDays className="w-4 h-4 text-[#2582a1]" />
+            <span>Academic Calendar</span>
+          </button>
+          <button
+            onClick={() => setIsExamModalOpen(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-[#fdb931] hover:bg-[#e5a523] text-[#0e3b4b] text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <FileText className="w-4 h-4 text-[#0e3b4b]" />
+            <span>Allocate Exam Duty</span>
+          </button>
+          <button
             onClick={() => setIsAbsenceModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Record Absence</span>
+            <span>Record Absence / Leave</span>
           </button>
           <button
             onClick={handleBatchAutoAllocate}
-            className="px-4 py-2.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5" />
-            <span>Run Auto-Allocation</span>
+            <span>Auto-Allocate</span>
           </button>
         </div>
       </div>
@@ -328,6 +418,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
       </div>
 
+      {/* Institutional User Registry & Role Governance Overview */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-bold text-[#0e3b4b]">Institutional User Registry & Role Governance</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f0f9fb] text-[#2582a1] border border-[#bee3ee]">
+                {userList.length} Active Accounts
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">Live directory of institutional leadership, coordinators, and teaching faculty</p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onNavigate('users')}
+              className="px-3.5 py-1.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Manage All Roles & Permissions →</span>
+            </button>
+          </div>
+        </div>
+
+        {userList.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            No registered users found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="pb-3">User & Email</th>
+                  <th className="pb-3">Department & Designation</th>
+                  <th className="pb-3">Current Role</th>
+                  <th className="pb-3">Faculty Code</th>
+                  <th className="pb-3">Rule 4 Duty Status</th>
+                  <th className="pb-3 text-right">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {userList.slice(0, 7).map((u) => {
+                  const roleName = u.role?.name || 'FACULTY';
+                  const roleBadgeClass =
+                    roleName === 'ADMIN'
+                      ? 'bg-purple-100 text-purple-800 border-purple-200'
+                      : roleName === 'DEAN'
+                      ? 'bg-amber-100 text-amber-900 border-amber-200'
+                      : roleName === 'HOD'
+                      ? 'bg-cyan-100 text-cyan-900 border-cyan-200'
+                      : roleName === 'PC'
+                      ? 'bg-blue-100 text-blue-900 border-blue-200'
+                      : roleName === 'COMMITTEE_MEMBER'
+                      ? 'bg-indigo-100 text-indigo-900 border-indigo-200'
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-[#0e3b4b] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+                            {u.full_name?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-900 block">{u.full_name}</span>
+                            <span className="text-slate-400 text-[11px] font-mono flex items-center">
+                              <Mail className="w-2.5 h-2.5 mr-1" />
+                              {u.email}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <span className="font-semibold text-slate-800 block">
+                          {u.department_name || 'General Administration'}
+                        </span>
+                        <span className="text-slate-500 text-[11px]">{u.designation || 'Academic Staff'}</span>
+                      </td>
+                      <td className="py-3">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${roleBadgeClass}`}>
+                          {roleName}
+                        </span>
+                      </td>
+                      <td className="py-3 font-mono text-[11px] text-slate-600">
+                        {u.faculty_code || 'N/A'}
+                      </td>
+                      <td className="py-3">
+                        {u.is_exempt ? (
+                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                            🛡️ Exempt
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            ✓ Substitution Eligible
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          onClick={() => onNavigate('users')}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#f0f9fb] hover:text-[#2582a1] text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Configure
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Record Absence Modal */}
       <Modal
         isOpen={isAbsenceModalOpen}
@@ -339,7 +544,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         <form onSubmit={handleRecordAbsence} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Absent Faculty Member
+              Faculty Member
             </label>
             <select
               value={selectedFacultyId}
@@ -356,17 +561,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             </select>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                From Date (Start)
+              </label>
+              <input
+                type="date"
+                value={absenceDate}
+                onChange={(e) => {
+                  setAbsenceDate(e.target.value);
+                  checkSelectedDate(e.target.value);
+                }}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                To Date (Upto When)
+              </label>
+              <input
+                type="date"
+                value={absenceEndDate}
+                min={absenceDate}
+                onChange={(e) => setAbsenceEndDate(e.target.value)}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Academic Calendar Badge & Warning */}
+          {dateCheck && (
+            <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+              dateCheck.is_holiday 
+                ? 'bg-amber-50 border-amber-200 text-amber-900' 
+                : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            }`}>
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-amber-700 shrink-0" />
+                <div>
+                  <span className="font-bold block">
+                    {dateCheck.day_name}, {dateCheck.date}
+                  </span>
+                  <span className="text-[11px]">
+                    {dateCheck.is_second_saturday 
+                      ? '⚠️ Institutional Non-Working Day (Second Saturday)'
+                      : dateCheck.is_sunday
+                      ? '⚠️ Weekly Off (Sunday)'
+                      : dateCheck.holiday_name
+                      ? `🎉 Holiday: ${dateCheck.holiday_name}`
+                      : '✓ Regular Academic Working Day'}
+                  </span>
+                </div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                dateCheck.is_working_day ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {dateCheck.is_working_day ? 'Working Day' : 'Holiday / Off'}
+              </span>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Absence Date
+              Leave Type
             </label>
-            <input
-              type="date"
-              value={absenceDate}
-              onChange={(e) => setAbsenceDate(e.target.value)}
-              className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
-              required
-            />
+            <select
+              value={leaveType}
+              onChange={(e) => setLeaveType(e.target.value)}
+              className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
+            >
+              <option value="CASUAL">Casual Leave (CL)</option>
+              <option value="MEDICAL">Medical Leave (ML)</option>
+              <option value="ON_DUTY">On Duty / Academic Deputation (OD)</option>
+              <option value="LONG_LEAVE">Long Leave / Sabbatical</option>
+              <option value="EMERGENCY">Emergency Leave</option>
+              <option value="OTHER">Other</option>
+            </select>
           </div>
 
           <div>
@@ -419,6 +692,172 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </form>
       </Modal>
 
+      {/* Allocate Exam Duty Modal */}
+      <Modal
+        isOpen={isExamModalOpen}
+        onClose={() => setIsExamModalOpen(false)}
+        title="Allocate Exam Duty & Invigilation"
+        subtitle="Scheduled faculty will receive interactive notification cards with reporting time, exam time, and venue."
+        maxWidth="lg"
+      >
+        <form onSubmit={handleAllocateExamDuty} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Examination Title
+              </label>
+              <input
+                type="text"
+                value={examName}
+                onChange={(e) => setExamName(e.target.value)}
+                placeholder="e.g. Mid-Term Examination 2026"
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Course / Subject Name
+              </label>
+              <input
+                type="text"
+                value={courseName}
+                onChange={(e) => setCourseName(e.target.value)}
+                placeholder="e.g. CS301 - Operating Systems"
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Exam Date
+              </label>
+              <input
+                type="date"
+                value={examDate}
+                onChange={(e) => setExamDate(e.target.value)}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 text-amber-800">
+                Reporting Time
+              </label>
+              <input
+                type="text"
+                value={reportingTime}
+                onChange={(e) => setReportingTime(e.target.value)}
+                placeholder="e.g. 08:30 AM"
+                className="w-full text-xs rounded-xl border border-amber-300 p-2.5 bg-amber-50/50 text-amber-950 font-bold focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Exam Duration
+              </label>
+              <div className="flex items-center space-x-1">
+                <input
+                  type="text"
+                  value={examStartTime}
+                  onChange={(e) => setExamStartTime(e.target.value)}
+                  placeholder="09:00 AM"
+                  className="w-1/2 text-xs rounded-xl border border-slate-300 p-2 bg-white text-center focus:ring-2 focus:ring-[#2582a1]"
+                  required
+                />
+                <span className="text-slate-400 font-bold">-</span>
+                <input
+                  type="text"
+                  value={examEndTime}
+                  onChange={(e) => setExamEndTime(e.target.value)}
+                  placeholder="12:00 PM"
+                  className="w-1/2 text-xs rounded-xl border border-slate-300 p-2 bg-white text-center focus:ring-2 focus:ring-[#2582a1]"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Venue / Hall / Room
+              </label>
+              <input
+                type="text"
+                value={examVenue}
+                onChange={(e) => setExamVenue(e.target.value)}
+                placeholder="e.g. Exam Hall B-204, Block-3"
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Invigilator Role Type
+              </label>
+              <select
+                value={examRole}
+                onChange={(e) => setExamRole(e.target.value)}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
+              >
+                <option value="Room Invigilator">Room Invigilator</option>
+                <option value="Chief Superintendent">Chief Superintendent</option>
+                <option value="Hall Supervisor">Hall Supervisor</option>
+                <option value="Flying Squad Member">Flying Squad Member</option>
+                <option value="Reliever Invigilator">Reliever Invigilator</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Assign Faculty Member (Faculty / Dean / PC / Member)
+            </label>
+            <select
+              value={examFacultyId}
+              onChange={(e) => setExamFacultyId(Number(e.target.value) || '')}
+              className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
+              required
+            >
+              <option value="">-- Choose Faculty Invigilator --</option>
+              {facultyList.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name} ({f.faculty_id}) - {f.designation} [{f.department_name}]
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {examSuccessMsg && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium">
+              {examSuccessMsg}
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsExamModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingExam}
+              className="px-5 py-2 rounded-xl bg-[#0e3b4b] hover:bg-[#165369] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              {isSubmittingExam ? 'Allocating Duty...' : 'Confirm & Dispatch Duty'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Allocation Reasoning Modal */}
       <AllocationReasoningModal
         dutyId={selectedDutyId}
@@ -428,3 +867,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     </div>
   );
 };
+

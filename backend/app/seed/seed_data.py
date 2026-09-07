@@ -9,6 +9,169 @@ from app.models.entities import (
     SubstitutionDuty, SystemRule, AuditLog, Notification
 )
 
+ROLES_METADATA = [
+    {"name": "ADMIN", "description": "System Administrator with full access", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["all"]},
+    {"name": "DEAN", "description": "Dean of Academic Affairs (Academic governance & reports, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "view_timetables", "view_compliance"]},
+    {"name": "HOD", "description": "Head of Department (Department oversight & approvals, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_department", "view_reports", "manage_substitutions"]},
+    {"name": "FACULTY", "description": "Standard Teaching Faculty (Substitution Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties", "request_leaves"]},
+    {"name": "PC", "description": "Program Coordinator (Curriculum & Class Monitoring)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_classes", "view_timetables"]},
+    {"name": "COMMITTEE_MEMBER", "description": "Internal Examination / Disciplinary Committee Member (Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports"]}
+]
+
+INSTITUTIONAL_MEMBERS = [
+    # Administrators
+    {
+        "name": "Apollo Administrator",
+        "email": "admin@apollouniversity.edu.in",
+        "role": "ADMIN",
+        "dept": "CSE",
+        "designation": "System Administrator",
+        "phone": "+91 98765 43210",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    # Leadership: Deans & HODs
+    {
+        "name": "Dr. Vikramaditya Rao",
+        "email": "dean.academics@apollouniversity.edu.in",
+        "role": "DEAN",
+        "dept": "CSE",
+        "designation": "Dean of Academic Affairs",
+        "phone": "+91 98765 11001",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    {
+        "name": "Dr. Rajesh Sharma",
+        "email": "hod.cse@apollouniversity.edu.in",
+        "role": "HOD",
+        "dept": "CSE",
+        "designation": "Professor & Head of Department",
+        "phone": "+91 98765 11002",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    {
+        "name": "Dr. Ananya Sen",
+        "email": "hod.ece@apollouniversity.edu.in",
+        "role": "HOD",
+        "dept": "ECE",
+        "designation": "Professor & Head of Department",
+        "phone": "+91 98765 11003",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    {
+        "name": "Dr. Ramesh Babu",
+        "email": "hod.mech@apollouniversity.edu.in",
+        "role": "HOD",
+        "dept": "MECH",
+        "designation": "Professor & Head of Department",
+        "phone": "+91 98765 11004",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    # Coordinators & Committee
+    {
+        "name": "Prof. Sneha Patel",
+        "email": "sneha.patel@apollouniversity.edu.in",
+        "role": "PC",
+        "dept": "CSE",
+        "designation": "Program Coordinator (B.Tech CSE)",
+        "phone": "+91 98765 22001",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    {
+        "name": "Dr. K. V. Prasad",
+        "email": "kv.prasad@apollouniversity.edu.in",
+        "role": "COMMITTEE_MEMBER",
+        "dept": "ECE",
+        "designation": "Examination Committee Convener",
+        "phone": "+91 98765 22002",
+        "is_exempt": True,
+        "is_eligible": False
+    },
+    # Teaching Faculty Members (Eligible for substitutions)
+    {
+        "name": "Prof. Arun Kumar",
+        "email": "arun.kumar@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "CSE",
+        "designation": "Assistant Professor",
+        "phone": "+91 98765 33001",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["CS101", "CS102"]
+    },
+    {
+        "name": "Prof. Priya Nair",
+        "email": "priya.nair@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "CSE",
+        "designation": "Associate Professor",
+        "phone": "+91 98765 33002",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["CS103", "CS104"]
+    },
+    {
+        "name": "Prof. Mohammad Ahmed",
+        "email": "m.ahmed@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "CSE",
+        "designation": "Assistant Professor",
+        "phone": "+91 98765 33003",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["CS102", "CS105"]
+    },
+    {
+        "name": "Prof. Manoj Verma",
+        "email": "manoj.verma@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "ECE",
+        "designation": "Assistant Professor",
+        "phone": "+91 98765 44001",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["EC201", "EC202"]
+    },
+    {
+        "name": "Prof. Divya Krishnan",
+        "email": "divya.k@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "ECE",
+        "designation": "Assistant Professor",
+        "phone": "+91 98765 44002",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["EC203", "EC204"]
+    },
+    {
+        "name": "Prof. Sanjay Mehta",
+        "email": "sanjay.mehta@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "MECH",
+        "designation": "Associate Professor",
+        "phone": "+91 98765 55001",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["ME301", "ME302"]
+    },
+    {
+        "name": "Prof. Kavita Reddy",
+        "email": "kavita.reddy@apollouniversity.edu.in",
+        "role": "FACULTY",
+        "dept": "MATH",
+        "designation": "Assistant Professor",
+        "phone": "+91 98765 66001",
+        "is_exempt": False,
+        "is_eligible": True,
+        "expertise": ["MA101", "MA102"]
+    }
+]
+
 def seed_database(db: Session = None):
     close_db_at_end = False
     if db is None:
@@ -17,30 +180,17 @@ def seed_database(db: Session = None):
         close_db_at_end = True
 
     try:
-        # Check if already seeded
-        if db.query(Role).count() > 0:
-            print("Database already initialized with roles.")
-            return
-
-        print("Initializing clean institutional structure...")
-
-        # 1. ROLES
-        roles_data = [
-            {"name": "ADMIN", "description": "System Administrator with full access", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["all"]},
-            {"name": "DEAN", "description": "Dean of Academic Affairs (Read-only overview, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "view_timetables"]},
-            {"name": "HOD", "description": "Head of Department (Department oversight, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_department", "view_reports"]},
-            {"name": "FACULTY", "description": "Standard Teaching Faculty (Substitution Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties"]},
-            {"name": "PC", "description": "Program Coordinator", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_classes"]},
-            {"name": "COMMITTEE_MEMBER", "description": "Internal Committee Member (Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard"]}
-        ]
+        # 1. Ensure Roles
         roles_map = {}
-        for r_dict in roles_data:
-            role = Role(**r_dict)
-            db.add(role)
-            db.flush()
+        for r_dict in ROLES_METADATA:
+            role = db.query(Role).filter(Role.name == r_dict["name"]).first()
+            if not role:
+                role = Role(**r_dict)
+                db.add(role)
+                db.flush()
             roles_map[role.name] = role
 
-        # 2. DEPARTMENTS
+        # 2. Ensure Departments
         departments_data = [
             {"code": "CSE", "name": "Computer Science & Engineering", "description": "Department of CSE"},
             {"code": "ECE", "name": "Electronics & Communication", "description": "Department of ECE"},
@@ -49,12 +199,14 @@ def seed_database(db: Session = None):
         ]
         dept_map = {}
         for d_dict in departments_data:
-            dept = Department(**d_dict)
-            db.add(dept)
-            db.flush()
+            dept = db.query(Department).filter(Department.code == d_dict["code"]).first()
+            if not dept:
+                dept = Department(**d_dict)
+                db.add(dept)
+                db.flush()
             dept_map[dept.code] = dept
 
-        # 3. SUBJECTS
+        # 3. Ensure Subjects
         subjects_data = [
             {"code": "CS101", "name": "Data Structures & Algorithms", "department_id": dept_map["CSE"].id, "credits": 4},
             {"code": "CS102", "name": "Operating Systems", "department_id": dept_map["CSE"].id, "credits": 3},
@@ -71,12 +223,16 @@ def seed_database(db: Session = None):
             {"code": "MA101", "name": "Calculus & Linear Algebra", "department_id": dept_map["MATH"].id, "credits": 4},
             {"code": "MA102", "name": "Probability & Statistics", "department_id": dept_map["MATH"].id, "credits": 3}
         ]
+        subj_map = {}
         for s_dict in subjects_data:
-            subj = Subject(**s_dict)
-            db.add(subj)
-            db.flush()
+            subj = db.query(Subject).filter(Subject.code == s_dict["code"]).first()
+            if not subj:
+                subj = Subject(**s_dict)
+                db.add(subj)
+                db.flush()
+            subj_map[subj.code] = subj
 
-        # 4. CLASSES / SECTIONS
+        # 4. Ensure Classes / Sections
         classes_data = [
             {"name": "CSE-A", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
             {"name": "CSE-B", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
@@ -86,105 +242,185 @@ def seed_database(db: Session = None):
             {"name": "MECH-A", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 4},
             {"name": "MECH-B", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 6}
         ]
+        class_map = {}
         for c_dict in classes_data:
-            cls = ClassSection(**c_dict)
-            db.add(cls)
-            db.flush()
+            cls = db.query(ClassSection).filter(ClassSection.name == c_dict["name"]).first()
+            if not cls:
+                cls = ClassSection(**c_dict)
+                db.add(cls)
+                db.flush()
+            class_map[cls.name] = cls
 
-        # 5. INITIAL PRIMARY ADMIN ACCOUNT
-        admin_user = User(
-            email="admin@apollouniversity.edu.in",
-            hashed_password=get_password_hash("Admin@123"),
-            full_name="Apollo Administrator",
-            role_id=roles_map["ADMIN"].id,
-            is_active=True
-        )
-        db.add(admin_user)
-        db.flush()
+        # 5. Populate Institutional Users & Faculty
+        faculty_map = {}
+        for idx, m in enumerate(INSTITUTIONAL_MEMBERS, start=1):
+            clean_email = m["email"].strip().lower()
+            role = roles_map[m["role"]]
+            dept = dept_map[m["dept"]]
 
-        admin_faculty = Faculty(
-            faculty_id="ADMIN-APOLLO",
-            user_id=admin_user.id,
-            name="Apollo Administrator",
-            email="admin@apollouniversity.edu.in",
-            phone="+91 98765 43210",
-            department_id=dept_map["CSE"].id,
-            designation="System Administrator",
-            role_id=roles_map["ADMIN"].id,
-            is_substitution_eligible=False,
-            is_exempt=True,
-            max_weekly_substitutions=0,
-            status="ACTIVE"
-        )
-        db.add(admin_faculty)
-        db.flush()
+            user = db.query(User).filter(User.email == clean_email).first()
+            if not user:
+                user = User(
+                    email=clean_email,
+                    hashed_password=get_password_hash("Apollo@2026"),
+                    full_name=m["name"],
+                    role_id=role.id,
+                    is_active=True
+                )
+                db.add(user)
+                db.flush()
+            else:
+                user.role_id = role.id
+                user.full_name = m["name"]
 
-        # 6. SYSTEM RULES (Rules 1 to 7)
+            fac_code = f"FAC-{idx:03d}" if m["role"] != "ADMIN" else "ADMIN-APOLLO"
+            faculty = db.query(Faculty).filter(Faculty.email == clean_email).first()
+            if not faculty:
+                faculty = Faculty(
+                    faculty_id=fac_code,
+                    user_id=user.id,
+                    name=m["name"],
+                    email=clean_email,
+                    phone=m.get("phone", "+91 98765 00000"),
+                    department_id=dept.id,
+                    designation=m["designation"],
+                    role_id=role.id,
+                    is_substitution_eligible=m["is_eligible"],
+                    is_exempt=m["is_exempt"],
+                    max_weekly_substitutions=0 if m["is_exempt"] else 4,
+                    subject_expertise=m.get("expertise", []),
+                    status="ACTIVE"
+                )
+                db.add(faculty)
+                db.flush()
+            else:
+                faculty.user_id = user.id
+                faculty.role_id = role.id
+                faculty.department_id = dept.id
+                faculty.designation = m["designation"]
+                faculty.is_exempt = m["is_exempt"]
+                faculty.is_substitution_eligible = m["is_eligible"]
+                faculty.max_weekly_substitutions = 0 if m["is_exempt"] else 4
+            
+            faculty_map[clean_email] = faculty
+
+        # 6. System Rules (Rules 1 to 7)
         rules_data = [
             {
-                "rule_number": 1,
-                "name": "Slot Conflict Rule",
-                "description": "Faculty already engaged in a scheduled class or approved duty during the specified time slot is strictly disqualified.",
-                "rule_type": "HARD",
-                "parameters_json": {},
+                "rule_key": "rule_1_slot_conflict",
+                "rule_name": "Slot Conflict Disqualification",
+                "rule_value": "true",
+                "data_type": "boolean",
+                "description": "Faculty with scheduled classes or existing duties in target slot are disqualified",
                 "is_active": True
             },
             {
-                "rule_number": 2,
-                "name": "Daily Regular Load Limit",
-                "description": "Faculty having maximum permissible regular classes on the target day cannot be assigned duty (default: <= 2 classes).",
-                "rule_type": "HARD",
-                "parameters_json": {"max_daily_classes": 2},
+                "rule_key": "rule_2_daily_limit",
+                "rule_name": "Daily Regular Load Limit",
+                "rule_value": "2",
+                "data_type": "integer",
+                "description": "Faculty having maximum permissible regular classes on the target day cannot take duties",
                 "is_active": True
             },
             {
-                "rule_number": 3,
-                "name": "Weekly Substitution Cap",
-                "description": "Faculty who have reached the weekly maximum substitution duty quota are disqualified (default: <= 4 duties/week).",
-                "rule_type": "HARD",
-                "parameters_json": {"max_weekly_substitutions": 4},
+                "rule_key": "rule_3_weekly_cap",
+                "rule_name": "Weekly Substitution Quota Cap",
+                "rule_value": "4",
+                "data_type": "integer",
+                "description": "Maximum weekly substitutions permitted per faculty member",
                 "is_active": True
             },
             {
-                "rule_number": 4,
-                "name": "Institutional Exemption Rule",
-                "description": "Exempt positions (Dean, HOD, Program Coordinator, Committee Member) are disqualified from substitution allocation.",
-                "rule_type": "HARD",
-                "parameters_json": {"exempt_roles": ["DEAN", "HOD", "PC", "COMMITTEE_MEMBER", "ADMIN"]},
+                "rule_key": "rule_4_exemption",
+                "rule_name": "Institutional Exemption Filter",
+                "rule_value": '["ADMIN", "DEAN", "HOD", "PC", "COMMITTEE_MEMBER"]',
+                "data_type": "json",
+                "description": "Exempt leadership and administrative positions from substitution allocations",
                 "is_active": True
             },
             {
-                "rule_number": 5,
-                "name": "Department Affinity & Expertise",
-                "description": "Prioritize substitutes from the same department (+50 pts) and subject domain expertise (+30 pts).",
-                "rule_type": "SOFT",
-                "parameters_json": {"same_dept_score": 50, "subject_expertise_score": 30},
+                "rule_key": "rule_5_affinity",
+                "rule_name": "Department & Domain Affinity Weight",
+                "rule_value": "50",
+                "data_type": "integer",
+                "description": "Priority score bonus for candidates from the same department and subject expertise",
                 "is_active": True
             },
             {
-                "rule_number": 6,
-                "name": "Daily Workload Spacing",
-                "description": "Prefer faculty with fewer total duties on the given day (+20 pts for 0 duties).",
-                "rule_type": "SOFT",
-                "parameters_json": {"zero_daily_duties_score": 20},
+                "rule_key": "rule_6_daily_spacing",
+                "rule_name": "Daily Workload Spacing Score",
+                "rule_value": "20",
+                "data_type": "integer",
+                "description": "Priority score bonus for candidates with zero duties scheduled on the target day",
                 "is_active": True
             },
             {
-                "rule_number": 7,
-                "name": "Workload Fairness / Equal Distribution",
-                "description": "Deterministically prioritize faculty with lowest weekly cumulative substitutions (0 duties > 1 duty > 2 duties).",
-                "rule_type": "SOFT",
-                "parameters_json": {"weight_per_duty_delta": 40},
+                "rule_key": "rule_7_fairness",
+                "rule_name": "Deterministic Fairness Distribution",
+                "rule_value": "40",
+                "data_type": "integer",
+                "description": "Prioritize candidates with lowest weekly cumulative substitutions (0 duties > 1 duty > 2 duties)",
                 "is_active": True
             }
         ]
 
         for r_dict in rules_data:
-            rule = SystemRule(**r_dict, updated_by="Administrator")
-            db.add(rule)
+            existing_rule = db.query(SystemRule).filter(SystemRule.rule_key == r_dict["rule_key"]).first()
+            if not existing_rule:
+                rule = SystemRule(**r_dict, updated_by="Administrator")
+                db.add(rule)
+
+        # 7. Active Timetable Version & Sample Schedule
+        version = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
+        if not version:
+            version = TimetableVersion(name="2026 Academic Year - Semester Spring", academic_year="2026", is_active=True)
+            db.add(version)
+            db.flush()
+
+        # Add timetable entries if none
+        if db.query(TimetableEntry).filter(TimetableEntry.timetable_version_id == version.id).count() == 0:
+            slots = [
+                ("09:00", "10:00"),
+                ("10:00", "11:00"),
+                ("11:15", "12:15"),
+                ("13:15", "14:15"),
+                ("14:15", "15:15"),
+            ]
+            teaching_emails = [
+                "arun.kumar@apollouniversity.edu.in",
+                "priya.nair@apollouniversity.edu.in",
+                "m.ahmed@apollouniversity.edu.in",
+                "manoj.verma@apollouniversity.edu.in",
+                "divya.k@apollouniversity.edu.in",
+                "sanjay.mehta@apollouniversity.edu.in",
+                "kavita.reddy@apollouniversity.edu.in"
+            ]
+            subject_codes = ["CS101", "CS102", "CS103", "EC201", "EC202", "ME301", "MA101"]
+            class_names = ["CSE-A", "CSE-B", "CSE-C", "ECE-A", "ECE-B", "MECH-A", "MECH-B"]
+
+            for day in range(6):  # Mon - Sat
+                for i, email in enumerate(teaching_emails):
+                    fac = faculty_map.get(email)
+                    if not fac:
+                        continue
+                    slot = slots[(day + i) % len(slots)]
+                    subj = subj_map[subject_codes[i % len(subject_codes)]]
+                    cls = class_map[class_names[i % len(class_names)]]
+
+                    entry = TimetableEntry(
+                        timetable_version_id=version.id,
+                        faculty_id=fac.id,
+                        class_section_id=cls.id,
+                        subject_id=subj.id,
+                        day_of_week=day,
+                        start_time=slot[0],
+                        end_time=slot[1],
+                        room_number=f"Hall {101 + (i % 5)}"
+                    )
+                    db.add(entry)
 
         db.commit()
-        print("Clean institutional database structure initialized successfully!")
+        print("Apollo University Institutional Database successfully initialized & verified!")
 
     except Exception as e:
         db.rollback()

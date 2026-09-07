@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "neon-postgres-egress-optimizer": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres-egress-optimizer/SKILL.md",
+      "computedHash": "ac041a17c0e3cfa9976b56b6aa4095146e602c70c216977aa7bc8f57cc4736f2"
+    }
+  }
+}

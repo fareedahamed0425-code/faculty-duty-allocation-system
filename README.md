@@ -1,24 +1,21 @@
-# 🎓 Intelligent Faculty Substitution & Timetable Allocation System
+# 🏛️ The Apollo University — Intelligent Faculty Duty Allocation & Timetable System
 
 <div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.0%2B-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![NVIDIA AI](https://img.shields.io/badge/NVIDIA_AI-Nemotron--3-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://build.nvidia.com/)
-[![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
-[![Database](https://img.shields.io/badge/Database-SQLite%20%2F%20PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Neon Postgres](https://img.shields.io/badge/Neon_PostgreSQL-Serverless-00E599?style=for-the-badge&logo=postgresql&logoColor=black)](https://neon.tech/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=for-the-badge)](https://github.com/fareedahamed0425-code/faculty-duty-allocation-system/pulls)
 
 <br/>
 
-**An AI-powered, constraint-aware, multi-tiered institutional scheduling and faculty duty substitution management platform designed for universities and academic institutions.**
+**A production-grade, constraint-aware, multi-tiered institutional scheduling, faculty duty substitution, and role governance platform engineered for higher education institutions.**
 
-[Live Demo](#-one-click-deployment) • [Key Features](#-core-capabilities) • [Architecture](#-system-architecture) • [Getting Started](#-getting-started) • [Deployment](#-vercel--cloud-deployment)
+[Live Features](#-core-capabilities) • [System Architecture](#-system-architecture) • [Database Design](#-neon-postgresql-cloud-database) • [Getting Started](#-getting-started) • [Default Accounts](#-institutional-seed-credentials)
 
 </div>
 
@@ -26,32 +23,66 @@
 
 ## 🌟 Overview
 
-The **Intelligent Faculty Substitution & Timetable Allocation System** eliminates chaotic academic rescheduling caused by unexpected faculty leaves, academic events, and departmental workload imbalances. 
+**The Apollo University Faculty Duty Allocation System** automates and optimizes university-wide academic scheduling. It eliminates manual timetable conflicts, chaotic leave coverage, and faculty burnout by enforcing strict institutional policies through a **deterministic 7-step constraint satisfaction engine** paired with **live operational intelligence**.
 
-Powered by a **deterministic Constraint-Satisfaction Engine** combined with **NVIDIA Nemotron AI Reasoning**, the system automatically matches unallocated lectures and labs to eligible, available, and workload-balanced substitute professors in real time while respecting strict institutional policies.
+All operational data is persisted in **Neon Cloud PostgreSQL**, offering serverless database branching, real-time autoscaling, and relational integrity.
 
 ---
 
 ## 🚀 Core Capabilities
 
-### 🧠 1. Dual Allocation Engine (Deterministic + AI Reasoning)
-* **Zero Hard-Constraint Violations**: Enforces slot availability, department affinity, weekly substitution caps, and daily teaching limits.
-* **Weighted Multi-Factor Ranking**: Ranks candidates based on subject specialization, recent substitute load, consecutive class fatigue, and seniority.
-* **NVIDIA Nemotron-3 Reasoning**: Generates transparent, human-readable explanations for every substitution decision and powers natural-language schedule queries.
+### ⚖️ 1. Deterministic 7-Rule Fairness Engine
+The automated allocation engine solves substitution requirements using a strict 7-level constraint hierarchy:
+1. **Rule 1 (Slot Conflict):** Verified that the candidate has zero regular classes or prior duties during the target lecture slot.
+2. **Rule 2 (Daily Workload Cap):** Faculty with $\ge 2$ regular lectures on that day are protected from additional duties.
+3. **Rule 3 (Weekly Substitution Cap):** Enforces a strict maximum of **4 substitution duties per week** per faculty member.
+4. **Rule 4 (Role-Based Exemption):** Deans, HODs, Program Coordinators, and Committee Chairs are automatically exempted from routine class substitutions.
+5. **Rule 5 (Department & Subject Affinity):** Prioritizes available professors from the same department (+50 pts) and subject domain (+30 pts).
+6. **Rule 6 (Daily Duty Spacing):** Prioritizes faculty who currently have zero scheduled duties on the target day (+20 pts).
+7. **Rule 7 (Fairness Equalizer):** Prioritizes candidates with the fewest cumulative weekly substitutions ($0 \text{ duties} > 1 \text{ duty} > 2 \text{ duties}$).
 
-### 🏛️ 2. Multi-Role Institutional Portals
-* **👑 Dean / Provost**: Institution-wide cross-departmental analytics, leave impact reports, and global override controls.
-* **👔 Head of Department (HOD)**: Departmental timetables, automated leave approvals, candidate suggestions, and manual override workflows.
-* **👨‍🏫 Faculty Member**: Personal timetable schedules, upcoming substitute duty notifications, leave request filings, and historical duty logs.
-* **⚙️ System Admin**: Full timetable CSV/Excel wizard imports, active semester management, audit trail inspections, and institutional rule configuration.
+---
 
-### 📊 3. Timetable Grid & Smart Import Wizard
-* Interactive weekly timetable matrix with visual clash detection, room occupancy tracking, and multi-filter navigation.
-* Drag-and-drop or CSV batch upload wizard that validates faculty IDs, subject codes, batch/room allocations, and detects scheduling conflicts before ingestion.
+### 👥 2. User Registry & Role Governance
+* **Multi-Role Assignment:** Assign and change user roles across **ADMIN**, **DEAN**, **HOD**, **PC** (Program Coordinator), **COMMITTEE_MEMBER**, and **FACULTY**.
+* **Department Affiliation:** Inline re-assignment across academic departments (CSE, ECE, MECH, MATH).
+* **Automatic Rule Synchronization:** Toggling role assignments instantly updates Rule 4 exemption and Rule 7 substitution eligibility flags across the live database.
+* **Faculty Directory:** Detailed profile inspection including designation, official email, phone, weekly duty counters, and timetable schedules.
 
-### 🔔 4. Real-Time Alerting & Audit Logging
-* In-app notification center with instant alerts when duties are assigned, swapped, or approved.
-* Immutable audit trails documenting every automated substitution, manual override, and administrative override with timestamps and actor IDs.
+---
+
+### 🗓️ 3. Absence Management & Instant Class Substitution
+* **Single & Multi-Day Leave Filing:** Record Casual Leave (CL), Medical Leave (ML), On Duty (OD), or Emergency Leaves.
+* **Automatic Class Identification:** The engine maps all timetable periods affected across the absent faculty's schedule.
+* **1-Click Auto-Allocation:** Evaluates all eligible substitute professors and dispatches assignments with zero clashes in $<100\text{ms}$.
+* **Manual Override Support:** Administrators and HODs can manually select candidates from a ranked eligibility leaderboard with full violation audit logs.
+
+---
+
+### 📝 4. Exam Invigilation Management
+* **Exam Duty Scheduling:** Assign faculty to invigilation roles (*Room Invigilator*, *Hall Supervisor*, *Flying Squad*).
+* **Venue & Timing Management:** Configure examination titles, course codes, halls (e.g. *Exam Hall B-204*), dates, reporting times, and exam durations.
+* **Invigilator Alerts:** Dispatches notification cards directly to the assigned faculty member's portal.
+
+---
+
+### 📅 5. Academic Calendar & Holiday Controls
+* **Holiday Governance:** Register national, state, and institutional holidays.
+* **Timetable Freeze:** Automatically suspends routine class substitutions and exam scheduling during approved holidays.
+
+---
+
+### 🤖 6. AI Scheduling Advisor & Operational Assistant
+* **Contextual User Guide:** Guides faculty, HODs, Deans, and Admins through portal operations with plain-language step-by-step instructions.
+* **Live Database Grounding:** Queries real-time Neon PostgreSQL tables to report current absences, unallocated classes, active faculty counts, and weekly workload quotas.
+* **Strict Zero-Code Policy:** Designed exclusively for human operational assistance without generating programming code or scripts.
+
+---
+
+### 📊 7. Interactive Timetable Grid & Workload Analytics
+* **Weekly Matrix View:** Real-time timetable grid filterable by department, class section (e.g. *CSE-A Year 3*), and individual faculty.
+* **Visual Clash Detection:** Color-coded period cards (blue = regular lecture, green = substituted duty, clear = free period).
+* **Workload Distribution Charts:** Visual representation of weekly substitutions per faculty to guarantee equity.
 
 ---
 
@@ -59,90 +90,69 @@ Powered by a **deterministic Constraint-Satisfaction Engine** combined with **NV
 
 ```mermaid
 graph TD
-    A[React 19 + Vite Frontend] -->|REST / JWT Auth| B[FastAPI Gateway]
-    B --> C[Constraint Engine]
-    B --> D[Ranking Engine]
-    B --> E[NVIDIA Nemotron AI Service]
-    B --> F[SQLAlchemy ORM]
-    F --> G[(SQLite / PostgreSQL)]
-    
-    C -->|Check Constraints| F
-    D -->|Evaluate Workload & Fit| F
-    E -->|Explain & Assist| B
-```
-
-```
-faculty-duty-allocation-system/
-├── api/
-│   └── index.py               # Vercel Serverless Python Adapter
-├── backend/
-│   ├── app/
-│   │   ├── ai/                # NVIDIA Nemotron client & natural language tools
-│   │   ├── allocation/        # Hard & Soft constraint evaluation + ranking engine
-│   │   ├── api/v1/            # Modular FastAPI endpoints (auth, duties, timetable, etc.)
-│   │   ├── core/              # Config, institutional rule defaults, JWT security
-│   │   ├── db/                # SQLAlchemy database session & Base model
-│   │   ├── models/            # Relational database schemas (Faculty, Duty, Timetable)
-│   │   ├── schemas/           # Pydantic validation schemas
-│   │   ├── seed/              # Institutional seed data with demo users
-│   │   └── services/          # Business logic (Absence, Notification, Report, Timetable)
-│   └── requirements.txt       # Backend Python dependencies
-├── frontend/
-│   ├── public/                # Logos, SVGs, and static assets
-│   ├── src/
-│   │   ├── api/               # Typed Axios client with auto-JWT interceptors
-│   │   ├── components/        # Reusable UI cards, modals, grids, drawers, wizard
-│   │   ├── context/           # AuthContext & state management
-│   │   ├── pages/             # Portal pages (Dean, HOD, Faculty, Admin, AI Assistant)
-│   │   └── types/             # TypeScript domain models
-│   ├── package.json           # Frontend dependencies (React 19, TailwindCSS, Lucide)
-│   └── vite.config.ts         # Vite bundler configuration
-├── .env.example               # Environment variables template
-├── run_app.py                 # One-click local dual-server launcher
-└── vercel.json                # Single-project Vercel Serverless configuration
+    A[React 19 + TypeScript Frontend] -->|REST API / JWT Auth| B[FastAPI Gateway :8081]
+    B --> C[7-Rule Deterministic Allocation Engine]
+    B --> D[AI Scheduling & Operational Advisor]
+    B --> E[User & Role Governance Service]
+    B --> F[Absence & Exam Duty Service]
+    C --> G[SQLAlchemy 2.0 ORM]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[(Neon Cloud PostgreSQL)]
 ```
 
 ---
 
-## ⚙️ Institutional Constraint Matrix
+## 🗄️ Neon PostgreSQL Cloud Database
 
-The allocation engine evaluates candidate suitability through strict hierarchical filters:
+The system is configured to persist all institutional records on **Neon Serverless PostgreSQL**:
 
-| Category | Constraint | Rule Logic |
-| :--- | :--- | :--- |
-| **Hard Constraint** ⛔ | **Slot Availability** | Faculty cannot have an existing regular lecture, lab, or assigned substitution in the target timeslot. |
-| **Hard Constraint** ⛔ | **Weekly Substitution Cap** | Faculty cannot exceed configured `MAX_WEEKLY_SUBSTITUTIONS` (Default: 4). |
-| **Hard Constraint** ⛔ | **Active Leave Status** | Faculty who have approved leaves on the target date are strictly excluded. |
-| **Soft Constraint** ⚖️ | **Department Affinity** | Prefers faculty belonging to the same department as the absent professor (+35 pts). |
-| **Soft Constraint** ⚖️ | **Subject Competency** | Prioritizes professors tagged with matching subject expertise (+40 pts). |
-| **Soft Constraint** ⚖️ | **Workload Equity** | Distributes duty to faculty with fewer cumulative substitutions (+25 pts). |
-| **Soft Constraint** ⚖️ | **Fatigue Mitigation** | Penalizes assigning >2 consecutive back-to-back classes (-15 pts). |
+```
+postgresql://neondb_owner:npg_***@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+```
+
+### Relational Schema (16 Tables)
+1. **`roles`**: System permission tiers (ADMIN, DEAN, HOD, PC, COMMITTEE_MEMBER, FACULTY).
+2. **`users`**: Institutional user accounts with bcrypt-hashed credentials and role links.
+3. **`departments`**: Academic divisions (CSE, ECE, MECH, MATH).
+4. **`subjects`**: Course catalog with credits and department associations.
+5. **`class_sections`**: Student cohorts and batches across academic years.
+6. **`faculty`**: Faculty profiles, designations, subject expertise, weekly duty counters, and exemption flags.
+7. **`timetable_versions`**: Active semester timetable versions with freeze status.
+8. **`timetable_entries`**: Scheduled weekly lecture slots (day, start time, end time, room, faculty).
+9. **`absences`**: Leave records with dates, reasons, and status tracking.
+10. **`substitution_requirements`**: Uncovered class requirements generated from absences.
+11. **`substitution_duties`**: Assigned substitute duties with candidate ranking score and allocation method.
+12. **`academic_holidays`**: Institutional holidays and calendar pauses.
+13. **`exam_duties`**: Invigilation duty assignments with hall, role, and reporting times.
+14. **`system_rules`**: Configurable institutional constraints (weekly cap, daily regular class cap).
+15. **`audit_logs`**: Immutable audit logs of all duty assignments, overrides, and role changes.
+16. **`notifications`**: In-app notifications dispatched to faculty and administrators.
 
 ---
 
 ## 🛠️ Tech Stack
 
-<div align="center">
-
-| Layer | Technologies Used |
-| :--- | :--- |
-| **Frontend UI** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide React, Date-fns, Axios |
-| **Backend API** | Python 3.10+, FastAPI, Pydantic v2, Uvicorn, Starlette |
-| **Database & ORM** | SQLAlchemy 2.0, SQLite (Local/Dev) / PostgreSQL (Production), Pandas |
-| **AI & LLM** | NVIDIA Nemotron-3 (30B Omni Reasoning), NVIDIA Cloud API |
-| **Authentication** | OAuth2 Password Bearer, JWT (JSON Web Tokens), Passlib (Bcrypt) |
-| **Deployment** | Vercel Serverless Functions (`@vercel/python` + `@vercel/static-build`) |
-
-</div>
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4 | Responsive UI with real-time state management |
+| **Icons & UI** | Lucide React | Clean, modern iconography |
+| **Backend API** | FastAPI (Python 3.10+ / 3.13), Pydantic v2 | High-performance asynchronous REST API |
+| **Database** | Neon Cloud PostgreSQL, SQLAlchemy 2.0 | Serverless PostgreSQL with connection pooling |
+| **Security** | OAuth2 Password Bearer, JWT, Passlib (Bcrypt) | Token-based authentication and role authorization |
+| **Testing** | Pytest, AnyIO | Complete automated test coverage |
 
 ---
 
 ## 💻 Getting Started
 
 ### Prerequisites
-* **Python 3.10+**
+* **Python 3.10+** (Tested on Python 3.13)
 * **Node.js 18+** & **npm**
 * **Git**
+
+---
 
 ### 1. Clone the Repository
 ```bash
@@ -150,115 +160,102 @@ git clone https://github.com/fareedahamed0425-code/faculty-duty-allocation-syste
 cd faculty-duty-allocation-system
 ```
 
+---
+
 ### 2. Environment Configuration
-Copy the sample environment file:
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-*(Optional: Add your `NVIDIA_API_KEY` in `.env` to activate live AI reasoning).*
+
+Ensure your `.env` contains your Neon PostgreSQL connection string:
+```env
+DATABASE_URL=postgresql://neondb_owner:npg_3DRLr7fgoInb@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+SECRET_KEY=institution_scheduling_secret_jwt_key_2026_production_grade
+PORT=8081
+VITE_API_URL=http://localhost:8081/api/v1
+```
 
 ---
 
-### 3. Launching Locally (Unified 1-Command Launcher)
+### 3. Run Locally
 
-Run the included launcher to automatically configure virtual environments, install dependencies, seed the database, and spin up both backend and frontend:
-
+#### Option A: 1-Command Unified Launcher
 ```bash
 python run_app.py
 ```
 
-Once running:
-* **Frontend Portal**: `http://localhost:5173`
-* **FastAPI Interactive Swagger Docs**: `http://localhost:8000/docs`
-* **Health Check**: `http://localhost:8000/health`
+#### Option B: Standalone Servers
 
----
-
-### 4. Manual Setup (Alternative)
-
-<details>
-<summary><b>Click to expand manual setup instructions</b></summary>
-
-#### Backend Setup:
+**Start Backend (Terminal 1):**
 ```bash
 cd backend
 python -m venv .venv
-# On Windows:
+# Windows:
 .venv\Scripts\activate
-# On Linux/macOS:
+# Linux/macOS:
 source .venv/bin/activate
 
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --port 8081 --reload
 ```
 
-#### Frontend Setup:
+**Start Frontend (Terminal 2):**
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-</details>
+* **Frontend Application:** `http://localhost:5173`
+* **FastAPI Interactive Swagger Docs:** `http://localhost:8081/docs`
+* **API Health Check:** `http://localhost:8081/api/v1/health`
 
 ---
 
-## 🔑 Demo Login Credentials
+## 🔑 Institutional Seed Credentials
 
-The system seeds with test accounts covering all institutional hierarchies:
+All seeded test accounts use the default password: **`Apollo@2026`**
 
-| Role | Username / Email | Password | Access Level |
+| Role | Email | Designation | Department |
 | :--- | :--- | :--- | :--- |
-| **👑 Dean** | `dean@apollo.edu` | `dean123` | Cross-department analytics, institution overview, master rules |
-| **👔 HOD (CSE)** | `hod_cse@apollo.edu` | `hod123` | CSE Department schedules, leaves, allocations, overrides |
-| **👨‍🏫 Faculty (Dr. Sharma)** | `faculty1@apollo.edu` | `faculty123` | Personal timetable, substitution notices, leave applications |
-| **👨‍🏫 Faculty (Prof. Rajesh)** | `faculty2@apollo.edu` | `faculty123` | Personal schedule, duty allocations |
-| **⚙️ Admin** | `admin@apollo.edu` | `admin123` | Timetable wizard import, system rules, audit logs |
-
-> 💡 *A quick 1-click Demo Role Switcher is also accessible directly from the top navigation bar during local development!*
-
----
-
-## ☁️ Vercel & Cloud Deployment
-
-This repository is pre-configured with [`vercel.json`](file:///d:/UNI%20project/vercel.json) to deploy as a **single, unified fullstack application** on Vercel:
-
-1. Import this repository into [Vercel](https://vercel.com).
-2. Set **Root Directory** to `./` (Default).
-3. Add the following Environment Variables in the Vercel Dashboard:
-   * `NVIDIA_API_KEY` = *(Your NVIDIA API key)*
-   * `NVIDIA_MODEL` = `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`
-   * `SECRET_KEY` = *(Your production secret string)*
-   * `DATABASE_URL` = *(Optional: e.g., Neon or Supabase PostgreSQL connection string for permanent persistence)*
-4. Click **Deploy** &mdash; Vercel builds the static React bundle and mounts FastAPI serverless functions on `/api/*` seamlessly!
+| **⚙️ Admin** | `admin@apollouniversity.edu.in` | System Administrator | CSE |
+| **👑 Dean** | `dean.academics@apollouniversity.edu.in` | Dean of Academic Affairs | CSE |
+| **👔 HOD (CSE)** | `hod.cse@apollouniversity.edu.in` | Professor & Head of Dept | CSE |
+| **👔 HOD (ECE)** | `hod.ece@apollouniversity.edu.in` | Professor & Head of Dept | ECE |
+| **👔 HOD (MECH)** | `hod.mech@apollouniversity.edu.in` | Professor & Head of Dept | MECH |
+| **👔 HOD (MATH)** | `hod.math@apollouniversity.edu.in` | Professor & Head of Dept | MATH |
+| **📋 Coordinator (PC)** | `pc.cse@apollouniversity.edu.in` | Program Coordinator (B.Tech) | CSE |
+| **🛡️ Committee** | `kv.prasad@apollouniversity.edu.in` | Exam Committee Convener | ECE |
+| **👨‍🏫 Faculty** | `arun.kumar@apollouniversity.edu.in` | Assistant Professor | CSE |
+| **👨‍🏫 Faculty** | `priya.nair@apollouniversity.edu.in` | Associate Professor | CSE |
+| **👨‍🏫 Faculty** | `m.ahmed@apollouniversity.edu.in` | Assistant Professor | CSE |
+| **👨‍🏫 Faculty** | `manoj.verma@apollouniversity.edu.in` | Assistant Professor | ECE |
+| **👨‍🏫 Faculty** | `k.suresh@apollouniversity.edu.in` | Assistant Professor | MECH |
+| **👨‍🏫 Faculty** | `deepa.n@apollouniversity.edu.in` | Assistant Professor | MATH |
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Verification
 
-Run backend constraint and allocation unit tests:
+Run the comprehensive test suite (13 test suites covering constraints, ranking, absences, and role governance):
 ```bash
 cd backend
-pytest tests/
+python -m pytest
 ```
 
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature suggestions are always welcome!
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/SmartLeavePrediction`)
-3. Commit your Changes (`git commit -m 'Add Smart Leave Prediction'`)
-4. Push to the Branch (`git push origin feature/SmartLeavePrediction`)
-5. Open a Pull Request
+Verify frontend TypeScript compilation and production bundle:
+```bash
+cd frontend
+npm run build
+```
 
 ---
 
 ## 📜 License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 
 <div align="center">
-  <sub>Engineered with precision for modern higher education institutions.</sub>
+  <sub>The Apollo University — Advancing Excellence in Academic Governance.</sub>
 </div>
