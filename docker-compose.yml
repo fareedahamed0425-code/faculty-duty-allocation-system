@@ -5,24 +5,39 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: faculty_scheduler_backend
+    container_name: apollo_faculty_scheduler_backend
     ports:
-      - "8000:8000"
+      - "8081:8081"
     environment:
-      - PORT=8000
-      - SECRET_KEY=institution_scheduling_secret_jwt_key_2026_production_grade
+      - PORT=8081
+      - DATABASE_URL=${DATABASE_URL:-postgresql://neondb_owner:npg_3DRLr7fgoInb@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require}
+      - SECRET_KEY=${SECRET_KEY:-institution_scheduling_secret_jwt_key_2026_production_grade}
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=1440
       - MAX_WEEKLY_SUBSTITUTIONS=4
       - MAX_DAILY_REGULAR_CLASSES=2
       - INSTITUTION_NAME=The Apollo University
       - TIMEZONE=Asia/Kolkata
-      - DATABASE_URL=sqlite:///./faculty_scheduler.db
       - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
       - NVIDIA_MODEL=nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
-    volumes:
-      - scheduler_data:/app
+      - BACKEND_CORS_ORIGINS=["http://localhost:5173", "http://localhost:8081", "http://localhost", "http://127.0.0.1:5173", "http://127.0.0.1:8081", "http://127.0.0.1"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
-volumes:
-  scheduler_data:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: apollo_faculty_scheduler_frontend
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
