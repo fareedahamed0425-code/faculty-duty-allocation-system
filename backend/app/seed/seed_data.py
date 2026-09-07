@@ -172,7 +172,7 @@ INSTITUTIONAL_MEMBERS = [
     }
 ]
 
-def seed_database(db: Session = None):
+def seed_database(db: Session = None, include_demo_data: bool = False):
     close_db_at_end = False
     if db is None:
         Base.metadata.create_all(bind=engine)
@@ -190,121 +190,7 @@ def seed_database(db: Session = None):
                 db.flush()
             roles_map[role.name] = role
 
-        # 2. Ensure Departments
-        departments_data = [
-            {"code": "CSE", "name": "Computer Science & Engineering", "description": "Department of CSE"},
-            {"code": "ECE", "name": "Electronics & Communication", "description": "Department of ECE"},
-            {"code": "MECH", "name": "Mechanical Engineering", "description": "Department of Mechanical Engineering"},
-            {"code": "MATH", "name": "Mathematics & Basic Sciences", "description": "Department of Mathematics"}
-        ]
-        dept_map = {}
-        for d_dict in departments_data:
-            dept = db.query(Department).filter(Department.code == d_dict["code"]).first()
-            if not dept:
-                dept = Department(**d_dict)
-                db.add(dept)
-                db.flush()
-            dept_map[dept.code] = dept
-
-        # 3. Ensure Subjects
-        subjects_data = [
-            {"code": "CS101", "name": "Data Structures & Algorithms", "department_id": dept_map["CSE"].id, "credits": 4},
-            {"code": "CS102", "name": "Operating Systems", "department_id": dept_map["CSE"].id, "credits": 3},
-            {"code": "CS103", "name": "Database Management Systems", "department_id": dept_map["CSE"].id, "credits": 4},
-            {"code": "CS104", "name": "Computer Networks", "department_id": dept_map["CSE"].id, "credits": 3},
-            {"code": "CS105", "name": "Software Engineering", "department_id": dept_map["CSE"].id, "credits": 3},
-            {"code": "EC201", "name": "Digital Signal Processing", "department_id": dept_map["ECE"].id, "credits": 4},
-            {"code": "EC202", "name": "VLSI Design & Technology", "department_id": dept_map["ECE"].id, "credits": 4},
-            {"code": "EC203", "name": "Microprocessors & Microcontrollers", "department_id": dept_map["ECE"].id, "credits": 3},
-            {"code": "EC204", "name": "Communication Systems", "department_id": dept_map["ECE"].id, "credits": 3},
-            {"code": "ME301", "name": "Engineering Thermodynamics", "department_id": dept_map["MECH"].id, "credits": 4},
-            {"code": "ME302", "name": "Fluid Mechanics", "department_id": dept_map["MECH"].id, "credits": 4},
-            {"code": "ME303", "name": "Manufacturing Processes", "department_id": dept_map["MECH"].id, "credits": 3},
-            {"code": "MA101", "name": "Calculus & Linear Algebra", "department_id": dept_map["MATH"].id, "credits": 4},
-            {"code": "MA102", "name": "Probability & Statistics", "department_id": dept_map["MATH"].id, "credits": 3}
-        ]
-        subj_map = {}
-        for s_dict in subjects_data:
-            subj = db.query(Subject).filter(Subject.code == s_dict["code"]).first()
-            if not subj:
-                subj = Subject(**s_dict)
-                db.add(subj)
-                db.flush()
-            subj_map[subj.code] = subj
-
-        # 4. Ensure Classes / Sections
-        classes_data = [
-            {"name": "CSE-A", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
-            {"name": "CSE-B", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
-            {"name": "CSE-C", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 6},
-            {"name": "ECE-A", "department_id": dept_map["ECE"].id, "academic_year": "2026", "semester": 4},
-            {"name": "ECE-B", "department_id": dept_map["ECE"].id, "academic_year": "2026", "semester": 6},
-            {"name": "MECH-A", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 4},
-            {"name": "MECH-B", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 6}
-        ]
-        class_map = {}
-        for c_dict in classes_data:
-            cls = db.query(ClassSection).filter(ClassSection.name == c_dict["name"]).first()
-            if not cls:
-                cls = ClassSection(**c_dict)
-                db.add(cls)
-                db.flush()
-            class_map[cls.name] = cls
-
-        # 5. Populate Institutional Users & Faculty
-        faculty_map = {}
-        for idx, m in enumerate(INSTITUTIONAL_MEMBERS, start=1):
-            clean_email = m["email"].strip().lower()
-            role = roles_map[m["role"]]
-            dept = dept_map[m["dept"]]
-
-            user = db.query(User).filter(User.email == clean_email).first()
-            if not user:
-                user = User(
-                    email=clean_email,
-                    hashed_password=get_password_hash("Apollo@2026"),
-                    full_name=m["name"],
-                    role_id=role.id,
-                    is_active=True
-                )
-                db.add(user)
-                db.flush()
-            else:
-                user.role_id = role.id
-                user.full_name = m["name"]
-
-            fac_code = f"FAC-{idx:03d}" if m["role"] != "ADMIN" else "ADMIN-APOLLO"
-            faculty = db.query(Faculty).filter(Faculty.email == clean_email).first()
-            if not faculty:
-                faculty = Faculty(
-                    faculty_id=fac_code,
-                    user_id=user.id,
-                    name=m["name"],
-                    email=clean_email,
-                    phone=m.get("phone", "+91 98765 00000"),
-                    department_id=dept.id,
-                    designation=m["designation"],
-                    role_id=role.id,
-                    is_substitution_eligible=m["is_eligible"],
-                    is_exempt=m["is_exempt"],
-                    max_weekly_substitutions=0 if m["is_exempt"] else 4,
-                    subject_expertise=m.get("expertise", []),
-                    status="ACTIVE"
-                )
-                db.add(faculty)
-                db.flush()
-            else:
-                faculty.user_id = user.id
-                faculty.role_id = role.id
-                faculty.department_id = dept.id
-                faculty.designation = m["designation"]
-                faculty.is_exempt = m["is_exempt"]
-                faculty.is_substitution_eligible = m["is_eligible"]
-                faculty.max_weekly_substitutions = 0 if m["is_exempt"] else 4
-            
-            faculty_map[clean_email] = faculty
-
-        # 6. System Rules (Rules 1 to 7)
+        # 2. System Rules (Rules 1 to 7)
         rules_data = [
             {
                 "rule_key": "rule_1_slot_conflict",
@@ -370,57 +256,169 @@ def seed_database(db: Session = None):
                 rule = SystemRule(**r_dict, updated_by="Administrator")
                 db.add(rule)
 
-        # 7. Active Timetable Version & Sample Schedule
-        version = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
-        if not version:
-            version = TimetableVersion(name="2026 Academic Year - Semester Spring", academic_year="2026", is_active=True)
-            db.add(version)
+        # 3. Ensure Primary Admin User
+        admin_user = db.query(User).filter(User.email == "admin@apollouniversity.edu.in").first()
+        if not admin_user:
+            admin_user = User(
+                email="admin@apollouniversity.edu.in",
+                hashed_password=get_password_hash("Apollo@2026"),
+                full_name="Apollo Administrator",
+                role_id=roles_map["ADMIN"].id,
+                is_active=True
+            )
+            db.add(admin_user)
             db.flush()
 
-        # Add timetable entries if none
-        if db.query(TimetableEntry).filter(TimetableEntry.timetable_version_id == version.id).count() == 0:
-            slots = [
-                ("09:00", "10:00"),
-                ("10:00", "11:00"),
-                ("11:15", "12:15"),
-                ("13:15", "14:15"),
-                ("14:15", "15:15"),
+        # 4. Optional Demo Mockup Data
+        if include_demo_data:
+            departments_data = [
+                {"code": "CSE", "name": "Computer Science & Engineering", "description": "Department of CSE"},
+                {"code": "ECE", "name": "Electronics & Communication", "description": "Department of ECE"},
+                {"code": "MECH", "name": "Mechanical Engineering", "description": "Department of Mechanical Engineering"},
+                {"code": "MATH", "name": "Mathematics & Basic Sciences", "description": "Department of Mathematics"}
             ]
-            teaching_emails = [
-                "arun.kumar@apollouniversity.edu.in",
-                "priya.nair@apollouniversity.edu.in",
-                "m.ahmed@apollouniversity.edu.in",
-                "manoj.verma@apollouniversity.edu.in",
-                "divya.k@apollouniversity.edu.in",
-                "sanjay.mehta@apollouniversity.edu.in",
-                "kavita.reddy@apollouniversity.edu.in"
+            dept_map = {}
+            for d_dict in departments_data:
+                dept = db.query(Department).filter(Department.code == d_dict["code"]).first()
+                if not dept:
+                    dept = Department(**d_dict)
+                    db.add(dept)
+                    db.flush()
+                dept_map[dept.code] = dept
+
+            subjects_data = [
+                {"code": "CS101", "name": "Data Structures & Algorithms", "department_id": dept_map["CSE"].id, "credits": 4},
+                {"code": "CS102", "name": "Operating Systems", "department_id": dept_map["CSE"].id, "credits": 3},
+                {"code": "CS103", "name": "Database Management Systems", "department_id": dept_map["CSE"].id, "credits": 4},
+                {"code": "CS104", "name": "Computer Networks", "department_id": dept_map["CSE"].id, "credits": 3},
+                {"code": "CS105", "name": "Software Engineering", "department_id": dept_map["CSE"].id, "credits": 3},
+                {"code": "EC201", "name": "Digital Signal Processing", "department_id": dept_map["ECE"].id, "credits": 4},
+                {"code": "EC202", "name": "VLSI Design & Technology", "department_id": dept_map["ECE"].id, "credits": 4},
+                {"code": "EC203", "name": "Microprocessors & Microcontrollers", "department_id": dept_map["ECE"].id, "credits": 3},
+                {"code": "EC204", "name": "Communication Systems", "department_id": dept_map["ECE"].id, "credits": 3},
+                {"code": "ME301", "name": "Engineering Thermodynamics", "department_id": dept_map["MECH"].id, "credits": 4},
+                {"code": "ME302", "name": "Fluid Mechanics", "department_id": dept_map["MECH"].id, "credits": 4},
+                {"code": "ME303", "name": "Manufacturing Processes", "department_id": dept_map["MECH"].id, "credits": 3},
+                {"code": "MA101", "name": "Calculus & Linear Algebra", "department_id": dept_map["MATH"].id, "credits": 4},
+                {"code": "MA102", "name": "Probability & Statistics", "department_id": dept_map["MATH"].id, "credits": 3}
             ]
-            subject_codes = ["CS101", "CS102", "CS103", "EC201", "EC202", "ME301", "MA101"]
-            class_names = ["CSE-A", "CSE-B", "CSE-C", "ECE-A", "ECE-B", "MECH-A", "MECH-B"]
+            subj_map = {}
+            for s_dict in subjects_data:
+                subj = db.query(Subject).filter(Subject.code == s_dict["code"]).first()
+                if not subj:
+                    subj = Subject(**s_dict)
+                    db.add(subj)
+                    db.flush()
+                subj_map[subj.code] = subj
 
-            for day in range(6):  # Mon - Sat
-                for i, email in enumerate(teaching_emails):
-                    fac = faculty_map.get(email)
-                    if not fac:
-                        continue
-                    slot = slots[(day + i) % len(slots)]
-                    subj = subj_map[subject_codes[i % len(subject_codes)]]
-                    cls = class_map[class_names[i % len(class_names)]]
+            classes_data = [
+                {"name": "CSE-A", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
+                {"name": "CSE-B", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 4},
+                {"name": "CSE-C", "department_id": dept_map["CSE"].id, "academic_year": "2026", "semester": 6},
+                {"name": "ECE-A", "department_id": dept_map["ECE"].id, "academic_year": "2026", "semester": 4},
+                {"name": "ECE-B", "department_id": dept_map["ECE"].id, "academic_year": "2026", "semester": 6},
+                {"name": "MECH-A", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 4},
+                {"name": "MECH-B", "department_id": dept_map["MECH"].id, "academic_year": "2026", "semester": 6}
+            ]
+            class_map = {}
+            for c_dict in classes_data:
+                cls = db.query(ClassSection).filter(ClassSection.name == c_dict["name"]).first()
+                if not cls:
+                    cls = ClassSection(**c_dict)
+                    db.add(cls)
+                    db.flush()
+                class_map[cls.name] = cls
 
-                    entry = TimetableEntry(
-                        timetable_version_id=version.id,
-                        faculty_id=fac.id,
-                        class_section_id=cls.id,
-                        subject_id=subj.id,
-                        day_of_week=day,
-                        start_time=slot[0],
-                        end_time=slot[1],
-                        room_number=f"Hall {101 + (i % 5)}"
+            faculty_map = {}
+            for idx, m in enumerate(INSTITUTIONAL_MEMBERS, start=1):
+                clean_email = m["email"].strip().lower()
+                role = roles_map[m["role"]]
+                dept = dept_map[m["dept"]]
+
+                user = db.query(User).filter(User.email == clean_email).first()
+                if not user:
+                    user = User(
+                        email=clean_email,
+                        hashed_password=get_password_hash("Apollo@2026"),
+                        full_name=m["name"],
+                        role_id=role.id,
+                        is_active=True
                     )
-                    db.add(entry)
+                    db.add(user)
+                    db.flush()
+
+                fac_code = f"FAC-{idx:03d}" if m["role"] != "ADMIN" else "ADMIN-APOLLO"
+                faculty = db.query(Faculty).filter(Faculty.email == clean_email).first()
+                if not faculty:
+                    faculty = Faculty(
+                        faculty_id=fac_code,
+                        user_id=user.id,
+                        name=m["name"],
+                        email=clean_email,
+                        phone=m.get("phone", "+91 98765 00000"),
+                        department_id=dept.id,
+                        designation=m["designation"],
+                        role_id=role.id,
+                        is_substitution_eligible=m["is_eligible"],
+                        is_exempt=m["is_exempt"],
+                        max_weekly_substitutions=0 if m["is_exempt"] else 4,
+                        subject_expertise=m.get("expertise", []),
+                        status="ACTIVE"
+                    )
+                    db.add(faculty)
+                    db.flush()
+
+                faculty_map[clean_email] = faculty
+
+            version = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
+            if not version:
+                version = TimetableVersion(name="2026 Academic Year - Semester Spring", academic_year="2026", is_active=True)
+                db.add(version)
+                db.flush()
+
+            if db.query(TimetableEntry).filter(TimetableEntry.timetable_version_id == version.id).count() == 0:
+                slots = [
+                    ("09:00", "10:00"),
+                    ("10:00", "11:00"),
+                    ("11:15", "12:15"),
+                    ("13:15", "14:15"),
+                    ("14:15", "15:15"),
+                ]
+                teaching_emails = [
+                    "arun.kumar@apollouniversity.edu.in",
+                    "priya.nair@apollouniversity.edu.in",
+                    "m.ahmed@apollouniversity.edu.in",
+                    "manoj.verma@apollouniversity.edu.in",
+                    "divya.k@apollouniversity.edu.in",
+                    "sanjay.mehta@apollouniversity.edu.in",
+                    "kavita.reddy@apollouniversity.edu.in"
+                ]
+                subject_codes = ["CS101", "CS102", "CS103", "EC201", "EC202", "ME301", "MA101"]
+                class_names = ["CSE-A", "CSE-B", "CSE-C", "ECE-A", "ECE-B", "MECH-A", "MECH-B"]
+
+                for day in range(6):
+                    for i, email in enumerate(teaching_emails):
+                        fac = faculty_map.get(email)
+                        if not fac:
+                            continue
+                        slot = slots[(day + i) % len(slots)]
+                        subj = subj_map[subject_codes[i % len(subject_codes)]]
+                        cls = class_map[class_names[i % len(class_names)]]
+
+                        entry = TimetableEntry(
+                            timetable_version_id=version.id,
+                            faculty_id=fac.id,
+                            class_section_id=cls.id,
+                            subject_id=subj.id,
+                            day_of_week=day,
+                            start_time=slot[0],
+                            end_time=slot[1],
+                            room_number=f"Hall {101 + (i % 5)}"
+                        )
+                        db.add(entry)
 
         db.commit()
-        print("Apollo University Institutional Database successfully initialized & verified!")
+        print("Apollo University Institutional Database initialized!")
 
     except Exception as e:
         db.rollback()
