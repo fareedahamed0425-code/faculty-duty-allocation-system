@@ -10,7 +10,7 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
-      - DATABASE_URL=${DATABASE_URL:-postgresql://neondb_owner:npg_3DRLr7fgoInb@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./faculty_scheduler.db}
       - SECRET_KEY=${SECRET_KEY:-institution_scheduling_secret_jwt_key_2026_production_grade}
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=1440

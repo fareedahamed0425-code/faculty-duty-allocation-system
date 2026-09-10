@@ -85,6 +85,15 @@ class SubjectOut(BaseModel):
     class Config:
         from_attributes = True
 
+class ClassSectionCreate(BaseModel):
+    name: str
+    department_id: Optional[int] = None
+    course_code: Optional[str] = None
+    year_level: int = 1
+    semester: Optional[int] = None
+    academic_year: str = "2026"
+    capacity: int = 60
+
 class ClassSectionOut(BaseModel):
     id: int
     name: str
@@ -147,6 +156,31 @@ class FacultyOut(BaseModel):
     class Config:
         from_attributes = True
 
+class TimetablePeriodOut(BaseModel):
+    id: int
+    period_number: int
+    name: str
+    start_time: str
+    end_time: str
+    is_break: bool = False
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class TimetablePeriodUpdate(BaseModel):
+    start_time: str
+    end_time: str
+    name: Optional[str] = None
+    is_break: Optional[bool] = None
+
+class TimetablePeriodCreate(BaseModel):
+    period_number: int
+    name: str
+    start_time: str
+    end_time: str
+    is_break: bool = False
+
 # --- Timetables ---
 class TimetableEntryCreate(BaseModel):
     faculty_id: int
@@ -156,6 +190,15 @@ class TimetableEntryCreate(BaseModel):
     start_time: str
     end_time: str
     room_number: str = "Room-101"
+    timetable_version_id: Optional[int] = None
+
+class TimetableEntryUpdate(BaseModel):
+    faculty_id: Optional[int] = None
+    subject_id: Optional[int] = None
+    room_number: Optional[str] = None
+    day_of_week: Optional[int] = Field(None, ge=0, le=6)
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
 
 class TimetableEntryOut(BaseModel):
     id: int
@@ -187,6 +230,28 @@ class TimetableVersionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SectionHierarchyItem(BaseModel):
+    id: int
+    name: str
+    department_id: int
+    department_code: str
+    academic_year: str
+    semester: int
+    year_level: int
+    capacity: int = 60
+    total_entries: int = 0
+
+class CourseHierarchyItem(BaseModel):
+    code: str  # CSE, AIDS, AIML, CS, CC, AIHC
+    name: str
+    department_id: int
+    sections: List[SectionHierarchyItem] = []
+
+class YearHierarchyItem(BaseModel):
+    year_level: int  # 1, 2, 3, 4
+    roman_label: str  # "1st Year (I)", "2nd Year (II)", ...
+    courses: List[CourseHierarchyItem] = []
 
 class TimetableImportPreview(BaseModel):
     filename: str

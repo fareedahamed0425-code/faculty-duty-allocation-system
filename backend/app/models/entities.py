@@ -79,10 +79,39 @@ class ClassSection(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     academic_year = Column(String(20), default="2026")
     semester = Column(Integer, default=1)
+    year_level = Column(Integer, default=1)  # 1 = 1st Year, 2 = 2nd Year, 3 = 3rd Year, 4 = 4th Year
     capacity = Column(Integer, default=60)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     department = relationship("Department", back_populates="classes")
+
+    @property
+    def effective_year(self) -> int:
+        if self.year_level and 1 <= self.year_level <= 4:
+            return self.year_level
+        if self.semester:
+            return max(1, min(4, (self.semester + 1) // 2))
+        name_upper = (self.name or "").upper()
+        if name_upper.startswith("IV") or "4TH" in name_upper or "YEAR 4" in name_upper:
+            return 4
+        if name_upper.startswith("III") or "3RD" in name_upper or "YEAR 3" in name_upper:
+            return 3
+        if name_upper.startswith("II") or "2ND" in name_upper or "YEAR 2" in name_upper:
+            return 2
+        return 1
+
+
+class TimetablePeriod(Base):
+    __tablename__ = "timetable_periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    period_number = Column(Integer, unique=True, nullable=False, index=True)  # 1, 2, 3, 4, 5, 6
+    name = Column(String(50), nullable=False)  # "Period 1"
+    start_time = Column(String(10), nullable=False)  # "09:00"
+    end_time = Column(String(10), nullable=False)    # "10:00"
+    is_break = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Faculty(Base):

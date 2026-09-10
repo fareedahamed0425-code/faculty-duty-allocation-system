@@ -22,7 +22,17 @@ export const ExamTimetableUploadWizard: React.FC<ExamTimetableUploadWizardProps>
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [completionResult, setCompletionResult] = useState<any>(null);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setPreviewData(null);
+      setStep('upload');
+      setErrorMessage(null);
+      setCompletionResult(null);
+      setIsUploading(false);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

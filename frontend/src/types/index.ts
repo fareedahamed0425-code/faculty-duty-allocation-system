@@ -70,6 +70,40 @@ export interface TimetableEntry {
   room_number: string;
 }
 
+export interface TimetablePeriod {
+  id: number;
+  period_number: number;
+  name: string;
+  start_time: string;
+  end_time: string;
+  is_break: boolean;
+}
+
+export interface SectionHierarchyItem {
+  id: number;
+  name: string;
+  department_id: number;
+  department_code: string;
+  academic_year: string;
+  semester: number;
+  year_level: number;
+  capacity: number;
+  total_entries: number;
+}
+
+export interface CourseHierarchyItem {
+  code: string;
+  name: string;
+  department_id: number;
+  sections: SectionHierarchyItem[];
+}
+
+export interface YearHierarchyItem {
+  year_level: number;
+  roman_label: string;
+  courses: CourseHierarchyItem[];
+}
+
 export interface TimetableVersion {
   id: number;
   name: string;

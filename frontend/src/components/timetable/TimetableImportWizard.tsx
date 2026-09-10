@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { apiClient } from '../../api/client';
 import { 
@@ -40,7 +40,17 @@ export const TimetableImportWizard: React.FC<TimetableImportWizardProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string>('ALL');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setPreviewData(null);
+      setStep('upload');
+      setErrorMessage(null);
+      setSelectedClass('ALL');
+      setIsUploading(false);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

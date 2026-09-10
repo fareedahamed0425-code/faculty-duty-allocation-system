@@ -12,7 +12,10 @@ from openai import OpenAI
 from app.core.config import settings
 from app.models.entities import Faculty, ClassSection, Subject, Department, User, Role
 from app.core.security import get_password_hash
-from app.services.timetable_service import normalize_time_str, parse_time_slot, parse_day_to_int
+from app.services.timetable_service import (
+    normalize_time_str, parse_time_slot, parse_day_to_int,
+    normalize_academic_year, normalize_course_code
+)
 
 DAY_MAP = {
     "mon": 0, "monday": 0,
@@ -432,16 +435,18 @@ def scan_and_extract_timetable_with_ai(
         # Resolve or Auto-Provision Class Section
         class_obj = class_map.get(cls_name.upper())
         if not class_obj:
+            extracted_yr = normalize_academic_year(cls_name) or 1
             class_obj = ClassSection(
                 name=cls_name.upper(),
                 department_id=class_dept.id if class_dept else 1,
                 academic_year="2026",
-                semester=1
+                year_level=extracted_yr,
+                semester=(extracted_yr * 2 - 1)
             )
             db.add(class_obj)
             db.flush()
             class_map[cls_name.upper()] = class_obj
-            warnings.append(f"Auto-created class section '{cls_name.upper()}' under {class_dept.code if class_dept else 'General'}.")
+            warnings.append(f"Auto-created class section '{cls_name.upper()}' (Year {extracted_yr}) under {class_dept.code if class_dept else 'General'}.")
 
         # Resolve or Auto-Provision Subject
         subject_obj = subject_map.get(sub_code) or subject_name_map.get(sub_name.lower())

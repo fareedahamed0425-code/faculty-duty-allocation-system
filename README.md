@@ -15,7 +15,7 @@
 
 **A production-grade, constraint-aware, multi-tiered institutional scheduling, faculty duty substitution, and role governance platform engineered for higher education institutions.**
 
-[Live Features](#-core-capabilities) • [System Architecture](#-system-architecture) • [Database Design](#-neon-postgresql-cloud-database) • [Getting Started](#-getting-started) • [Default Accounts](#-institutional-seed-credentials)
+[Admin Guide](ADMIN_GUIDE.md) • [Live Features](#-core-capabilities) • [System Architecture](#-system-architecture) • [Database Design](#-neon-postgresql-cloud-database) • [Getting Started](#-getting-started) • [Default Accounts](#-institutional-seed-credentials)
 
 </div>
 
@@ -109,7 +109,7 @@ graph TD
 The system is configured to persist all institutional records on **Neon Serverless PostgreSQL**:
 
 ```
-postgresql://neondb_owner:npg_***@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+postgresql://<username>:<password>@<neon_subdomain>.aws.neon.tech/<dbname>?sslmode=require
 ```
 
 ### Relational Schema (16 Tables)
@@ -170,8 +170,8 @@ cp .env.example .env
 
 Ensure your `.env` contains your Neon PostgreSQL connection string:
 ```env
-DATABASE_URL=postgresql://neondb_owner:npg_3DRLr7fgoInb@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-SECRET_KEY=institution_scheduling_secret_jwt_key_2026_production_grade
+DATABASE_URL=postgresql://<username>:<password>@<neon_host>/<dbname>?sslmode=require
+SECRET_KEY=your_production_grade_secret_jwt_key
 PORT=8000
 VITE_API_URL=http://localhost:8000/api/v1
 ```

@@ -143,6 +143,55 @@ def parse_day_to_int(day_val: Any) -> Optional[int]:
             return v
     return None
 
+CANONICAL_COURSES_MAP = {
+    "CSE": "CSE", "COMPUTER SCIENCE": "CSE", "CS ENGINEERING": "CSE", "COMPUTER SCIENCE & ENGINEERING": "CSE",
+    "AIDS": "AIDS", "AI & DS": "AIDS", "AI&DS": "AIDS", "ARTIFICIAL INTELLIGENCE & DATA SCIENCE": "AIDS", "ARTIFICIAL INTELLIGENCE AND DATA SCIENCE": "AIDS",
+    "AIML": "AIML", "AI & ML": "AIML", "AI&ML": "AIML", "ARTIFICIAL INTELLIGENCE & MACHINE LEARNING": "AIML", "ARTIFICIAL INTELLIGENCE AND MACHINE LEARNING": "AIML",
+    "CS": "CS", "CYBER SECURITY": "CS", "CYBER": "CS", "CYBERSECURITY": "CS",
+    "CC": "CC", "CLOUD COMPUTING": "CC", "CLOUD": "CC",
+    "AIHC": "AIHC", "AI & HC": "AIHC", "AI&HC": "AIHC", "HEALTHCARE": "AIHC", "AI IN HEALTHCARE": "AIHC", "ARTIFICIAL INTELLIGENCE IN HEALTH CARE": "AIHC"
+}
+
+def normalize_academic_year(year_val: Any) -> Optional[int]:
+    """
+    Normalizes Roman numerals and descriptive text to academic year integer (1, 2, 3, 4).
+    I -> 1, II -> 2, III -> 3, IV -> 4
+    1st Year, 2nd Year, 3rd Year, 4th Year -> 1, 2, 3, 4
+    """
+    if not year_val:
+        return None
+    y_str = str(year_val).strip().upper()
+    if y_str in ["1", "I", "1ST", "1ST YEAR", "I YEAR", "YEAR 1", "YEAR I", "SEM 1", "SEM 2", "SEMESTER 1", "SEMESTER 2"]:
+        return 1
+    if y_str in ["2", "II", "2ND", "2ND YEAR", "II YEAR", "YEAR 2", "YEAR II", "SEM 3", "SEM 4", "SEMESTER 3", "SEMESTER 4"]:
+        return 2
+    if y_str in ["3", "III", "3RD", "3RD YEAR", "III YEAR", "YEAR 3", "YEAR III", "SEM 5", "SEM 6", "SEMESTER 5", "SEMESTER 6"]:
+        return 3
+    if y_str in ["4", "IV", "4TH", "4TH YEAR", "IV YEAR", "YEAR 4", "YEAR IV", "SEM 7", "SEM 8", "SEMESTER 7", "SEMESTER 8"]:
+        return 4
+    if re.search(r"\b(IV|4TH|YEAR\s*4|SEM\s*[78])\b", y_str):
+        return 4
+    if re.search(r"\b(III|3RD|YEAR\s*3|SEM\s*[56])\b", y_str):
+        return 3
+    if re.search(r"\b(II|2ND|YEAR\s*2|SEM\s*[34])\b", y_str):
+        return 2
+    if re.search(r"\b(I|1ST|YEAR\s*1|SEM\s*[12])\b", y_str):
+        return 1
+    return None
+
+def normalize_course_code(course_val: Any) -> Optional[str]:
+    """
+    Normalizes course / department input to one of the 6 canonical course codes:
+    CSE, AIDS, AIML, CS, CC, AIHC.
+    """
+    if not course_val:
+        return None
+    c_str = str(course_val).strip().upper().replace("_", " ").replace("-", " ")
+    for k, v in CANONICAL_COURSES_MAP.items():
+        if c_str == k or c_str.startswith(k + " ") or f" {k} " in f" {c_str} ":
+            return v
+    return None
+
 def parse_and_validate_timetable_file(
     db: Session,
     file_bytes: bytes,
@@ -347,16 +396,18 @@ def parse_and_validate_timetable_file(
         # Resolve or Auto-Provision Class Section
         class_obj = class_map.get(cls_val.upper())
         if not class_obj:
+            extracted_yr = normalize_academic_year(cls_val) or 1
             class_obj = ClassSection(
                 name=cls_val.upper(),
                 department_id=default_dept.id if default_dept else 1,
                 academic_year="2026",
-                semester=1
+                year_level=extracted_yr,
+                semester=(extracted_yr * 2 - 1)
             )
             db.add(class_obj)
             db.flush()
             class_map[cls_val.upper()] = class_obj
-            warnings.append(f"Row {row_num}: Auto-created new class section '{cls_val.upper()}'.")
+            warnings.append(f"Row {row_num}: Auto-created new class section '{cls_val.upper()}' (Year {extracted_yr}).")
 
         # Resolve or Auto-Provision Subject
         subject_obj = subject_map.get(sub_val.upper()) or subject_name_map.get(sub_val.lower())
