@@ -397,7 +397,19 @@ def scan_and_extract_timetable_with_ai(
     subject_map = {s.code.upper(): s for s in subjects}
     subject_name_map = {s.name.lower(): s for s in subjects}
 
-    default_dept = db.query(Department).first()
+    departments = db.query(Department).all()
+    default_dept = departments[0] if departments else None
+
+    def resolve_dept(text: str) -> Department:
+        upper = text.upper()
+        for d in departments:
+            if re.search(r'\b' + re.escape(d.code.upper()) + r'\b', upper):
+                return d
+        for d in departments:
+            if d.code.upper() in upper or (d.name and d.name.lower() in text.lower()):
+                return d
+        return default_dept
+
     faculty_role = db.query(Role).filter(Role.name == "FACULTY").first()
 
     valid_entries = []
@@ -414,27 +426,31 @@ def scan_and_extract_timetable_with_ai(
         fac_name = str(raw.get("faculty_name", "Faculty Member")).strip().replace('"', '')
         room_no = str(raw.get("room_number", "Room-101")).strip().replace('"', '')
 
+        # Resolve Department for this class and subject
+        class_dept = resolve_dept(cls_name) or resolve_dept(sub_code) or default_dept
+
         # Resolve or Auto-Provision Class Section
         class_obj = class_map.get(cls_name.upper())
         if not class_obj:
             class_obj = ClassSection(
                 name=cls_name.upper(),
-                department_id=default_dept.id if default_dept else 1,
+                department_id=class_dept.id if class_dept else 1,
                 academic_year="2026",
                 semester=1
             )
             db.add(class_obj)
             db.flush()
             class_map[cls_name.upper()] = class_obj
-            warnings.append(f"Auto-created class section '{cls_name.upper()}'.")
+            warnings.append(f"Auto-created class section '{cls_name.upper()}' under {class_dept.code if class_dept else 'General'}.")
 
         # Resolve or Auto-Provision Subject
         subject_obj = subject_map.get(sub_code) or subject_name_map.get(sub_name.lower())
         if not subject_obj:
+            subject_dept = resolve_dept(sub_code) or class_dept
             subject_obj = Subject(
                 code=sub_code,
                 name=sub_name if sub_name else sub_code,
-                department_id=default_dept.id if default_dept else 1,
+                department_id=subject_dept.id if subject_dept else 1,
                 credits=3,
                 is_active=True
             )

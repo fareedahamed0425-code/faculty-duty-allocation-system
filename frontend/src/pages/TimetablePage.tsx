@@ -12,7 +12,9 @@ export const TimetablePage: React.FC = () => {
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'faculty' | 'class'>('faculty');
+  const [selectedYear, setSelectedYear] = useState<string>('ALL'); // ALL, 1, 2, 3, 4
+  const [selectedDept, setSelectedDept] = useState<string>('ALL');
+  const [viewMode, setViewMode] = useState<'faculty' | 'class'>('class');
   const [isImportOpen, setIsImportOpen] = useState<boolean>(false);
   const [isExamImportOpen, setIsExamImportOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -48,7 +50,26 @@ export const TimetablePage: React.FC = () => {
     }
   };
 
+  // Helper to infer year from class name
+  const getClassYear = (className?: string): string => {
+    if (!className) return '';
+    const upper = className.toUpperCase();
+    if (upper.startsWith('IV') || upper.includes('4TH') || upper.includes('YEAR 4') || upper.includes('IV-')) return '4';
+    if (upper.startsWith('III') || upper.includes('3RD') || upper.includes('YEAR 3') || upper.includes('III-')) return '3';
+    if (upper.startsWith('II') || upper.includes('2ND') || upper.includes('YEAR 2') || upper.includes('II-')) return '2';
+    if (upper.startsWith('I') || upper.includes('1ST') || upper.includes('YEAR 1') || upper.includes('I-')) return '1';
+    return '';
+  };
+
   const displayedEntries = entries.filter((e) => {
+    if (selectedYear !== 'ALL') {
+      const y = getClassYear(e.class_name);
+      if (y && y !== selectedYear) return false;
+    }
+    if (selectedDept !== 'ALL') {
+      const cUpper = (e.class_name || '').toUpperCase();
+      if (!cUpper.includes(selectedDept)) return false;
+    }
     if (viewMode === 'faculty' && selectedFacultyId) {
       return e.faculty_id === Number(selectedFacultyId);
     }
@@ -60,7 +81,13 @@ export const TimetablePage: React.FC = () => {
 
   const uniqueClasses = Array.from(
     new Map(entries.map((e) => [e.class_section_id, e.class_name])).entries()
-  ).map(([id, name]) => ({ id, name }));
+  )
+    .map(([id, name]) => ({ id, name, year: getClassYear(name) }))
+    .filter((c) => {
+      if (selectedYear !== 'ALL' && c.year && c.year !== selectedYear) return false;
+      if (selectedDept !== 'ALL' && !(c.name || '').toUpperCase().includes(selectedDept)) return false;
+      return true;
+    });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
@@ -113,59 +140,108 @@ export const TimetablePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-subtle flex flex-wrap items-center gap-3">
-        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-          <button
-            onClick={() => {
-              setViewMode('faculty');
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-subtle flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+            <button
+              onClick={() => {
+                setViewMode('class');
+                setSelectedFacultyId('');
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                viewMode === 'class' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+              }`}
+            >
+              Class / Section View
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('faculty');
+                setSelectedClassId('');
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                viewMode === 'faculty' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+              }`}
+            >
+              Faculty View
+            </button>
+          </div>
+
+          {/* Academic Year Segregation Pills */}
+          <div className="flex items-center space-x-1 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+            <span className="px-2 text-[11px] font-bold text-slate-500">Year:</span>
+            {[
+              { label: 'All Years', val: 'ALL' },
+              { label: '1st Year (I)', val: '1' },
+              { label: '2nd Year (II)', val: '2' },
+              { label: '3rd Year (III)', val: '3' },
+              { label: '4th Year (IV)', val: '4' },
+            ].map((y) => (
+              <button
+                key={y.val}
+                onClick={() => {
+                  setSelectedYear(y.val);
+                  setSelectedClassId('');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  selectedYear === y.val
+                    ? 'bg-[#0e3b4b] text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {y.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Department Filter */}
+          <select
+            value={selectedDept}
+            onChange={(e) => {
+              setSelectedDept(e.target.value);
               setSelectedClassId('');
             }}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              viewMode === 'faculty' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-            }`}
+            className="text-xs rounded-xl border border-slate-200 p-2 bg-white text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
           >
-            Faculty View
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('class');
-              setSelectedFacultyId('');
-            }}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              viewMode === 'class' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-            }`}
-          >
-            Class / Section View
-          </button>
+            <option value="ALL">All Departments</option>
+            <option value="CSE">CSE</option>
+            <option value="AIML">AIML</option>
+            <option value="AIDS">AIDS</option>
+            <option value="CS">CS (Cyber Sec)</option>
+            <option value="CC">CC (Cloud)</option>
+            <option value="AIHC">AIHC (Healthcare)</option>
+          </select>
         </div>
 
-        {viewMode === 'faculty' ? (
-          <select
-            value={selectedFacultyId}
-            onChange={(e) => setSelectedFacultyId(e.target.value)}
-            className="text-xs rounded-xl border border-slate-200 p-2 bg-white text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
-          >
-            <option value="">All Faculty Schedules</option>
-            {facultyList.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name} ({f.faculty_id})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="text-xs rounded-xl border border-slate-200 p-2 bg-white text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
-          >
-            <option value="">All Classes / Sections</option>
-            {uniqueClasses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        )}
+        <div>
+          {viewMode === 'faculty' ? (
+            <select
+              value={selectedFacultyId}
+              onChange={(e) => setSelectedFacultyId(e.target.value)}
+              className="text-xs rounded-xl border border-slate-200 p-2 bg-white text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
+            >
+              <option value="">All Faculty Schedules ({facultyList.length})</option>
+              {facultyList.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name} ({f.faculty_id})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="text-xs rounded-xl border border-slate-200 p-2 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
+            >
+              <option value="">All Segregated Classes ({uniqueClasses.length})</option>
+              {uniqueClasses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.year ? `[Year ${c.year}]` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       <TimetableScheduleGrid entries={displayedEntries} viewMode={viewMode} />

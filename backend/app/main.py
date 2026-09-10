@@ -13,14 +13,14 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
-            if db.query(Role).count() == 0 or db.query(Faculty).count() <= 1:
-                seed_database(db, include_demo_data=True)
+            if db.query(Role).count() == 0:
+                seed_database(db, include_demo_data=False)
         finally:
             db.close()
     except Exception as e:
         print(f"Database initialization warning: {e}")
 
-# Safe startup initialization
+# Safe startup initialization (zero mock data)
 init_db()
 
 @asynccontextmanager
