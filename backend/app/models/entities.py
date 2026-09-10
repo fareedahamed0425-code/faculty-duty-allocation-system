@@ -105,13 +105,18 @@ class TimetablePeriod(Base):
     __tablename__ = "timetable_periods"
 
     id = Column(Integer, primary_key=True, index=True)
-    period_number = Column(Integer, unique=True, nullable=False, index=True)  # 1, 2, 3, 4, 5, 6
+    year_level = Column(Integer, default=1, nullable=False, index=True)  # 1 = 1st Year, 2 = 2nd Year, 3 = 3rd Year, 4 = 4th Year
+    period_number = Column(Integer, nullable=False, index=True)  # 1, 2, 3, 4, 5, 6
     name = Column(String(50), nullable=False)  # "Period 1"
     start_time = Column(String(10), nullable=False)  # "09:00"
     end_time = Column(String(10), nullable=False)    # "10:00"
     is_break = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("year_level", "period_number", name="uq_year_period_num"),
+    )
 
 
 class Faculty(Base):

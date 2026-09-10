@@ -26,13 +26,62 @@ def test_roman_numeral_and_course_normalization():
     assert normalize_course_code("Artificial Intelligence in Health Care") == "AIHC"
 
 def test_timetable_periods_api():
+    # 1. Fetch all periods
     response = client.get("/api/v1/timetables/periods")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 6
-    assert data[0]["period_number"] == 1
-    assert "start_time" in data[0]
-    assert "end_time" in data[0]
+    assert len(data) >= 24  # 4 years * 6 periods
+
+    # 2. Fetch year-specific periods
+    res_y1 = client.get("/api/v1/timetables/periods?year_level=1")
+    assert res_y1.status_code == 200
+    y1_data = res_y1.json()
+    assert len(y1_data) == 6
+    assert all(p["year_level"] == 1 for p in y1_data)
+
+    res_y2 = client.get("/api/v1/timetables/periods?year_level=2")
+    assert res_y2.status_code == 200
+    y2_data = res_y2.json()
+    assert len(y2_data) == 6
+    assert all(p["year_level"] == 2 for p in y2_data)
+
+    # 3. Test independent period updating
+    db = SessionLocal()
+    admin_user = db.query(User).filter(User.email == "admin@apollouniversity.edu.in").first()
+    db.close()
+
+    if admin_user:
+        from app.core.security import create_access_token
+        token = create_access_token(subject=admin_user.email, extra_claims={"role": "ADMIN"})
+        headers = {"Authorization": f"Bearer {token}"}
+
+        y1_p1 = y1_data[0]
+        y2_p1 = y2_data[0]
+        original_y1_st = y1_p1["start_time"]
+        original_y1_et = y1_p1["end_time"]
+        original_y2_st = y2_p1["start_time"]
+
+        try:
+            # Update Year 1 Period 1 timing
+            update_res = client.put(
+                f"/api/v1/timetables/periods/{y1_p1['id']}",
+                json={"start_time": "08:30", "end_time": "09:30", "name": "Period 1"},
+                headers=headers
+            )
+            assert update_res.status_code == 200
+            assert update_res.json()["start_time"] == "08:30"
+            assert update_res.json()["year_level"] == 1
+
+            # Verify Year 2 Period 1 remained completely untouched
+            check_y2 = client.get("/api/v1/timetables/periods?year_level=2").json()
+            assert check_y2[0]["start_time"] == original_y2_st
+        finally:
+            # Restore Year 1 Period 1 original timing
+            client.put(
+                f"/api/v1/timetables/periods/{y1_p1['id']}",
+                json={"start_time": original_y1_st, "end_time": original_y1_et, "name": "Period 1"},
+                headers=headers
+            )
 
 def test_timetable_hierarchy_api():
     response = client.get("/api/v1/timetables/hierarchy")

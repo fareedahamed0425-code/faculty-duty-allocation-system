@@ -150,7 +150,18 @@ export const TimetablePage: React.FC = () => {
     return [];
   }, [entries, viewMode, selectedFacultyId, currentSection, availableSections]);
 
-  const handleOpenAddEntry = (day: number, period: TimetablePeriod) => {
+  const activeYearLevel = useMemo(() => {
+    if (currentSection) return currentSection.year_level || 1;
+    if (selectedYear !== 'ALL') return Number(selectedYear) || 1;
+    return 1;
+  }, [currentSection, selectedYear]);
+
+  const currentYearPeriods = useMemo(() => {
+    const filtered = (periods || []).filter((p) => (p.year_level || 1) === activeYearLevel);
+    return filtered.length > 0 ? filtered : (periods || []);
+  }, [periods, activeYearLevel]);
+
+  const handleOpenAddEntry = (day: number, period: TimetablePeriod | null) => {
     setSelectedEntryToEdit(null);
     setDefaultSlotForNewEntry({ day, period });
     setIsEntryModalOpen(true);
@@ -526,7 +537,7 @@ export const TimetablePage: React.FC = () => {
 
             {viewMode === 'class' && currentSection && (
               <button
-                onClick={() => handleOpenAddEntry(0, (periods && periods[0]) || null)}
+                onClick={() => handleOpenAddEntry(0, (currentYearPeriods && currentYearPeriods[0]) || null)}
                 className="px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-colors flex items-center space-x-1 cursor-pointer self-start sm:self-auto shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -538,7 +549,7 @@ export const TimetablePage: React.FC = () => {
           {/* Timetable Schedule Grid (Horizontal Period Header, Vertical Days) */}
           <TimetableScheduleGrid
             entries={displayedEntries}
-            periods={periods}
+            periods={currentYearPeriods}
             viewMode={viewMode}
             isAdmin={true}
             onEditEntry={handleOpenEditEntry}
@@ -590,6 +601,7 @@ export const TimetablePage: React.FC = () => {
         onClose={() => setIsPeriodsModalOpen(false)}
         periods={periods}
         focusPeriodId={focusPeriodId}
+        defaultYearLevel={activeYearLevel}
         onSuccess={fetchAllData}
       />
 
@@ -601,7 +613,7 @@ export const TimetablePage: React.FC = () => {
         defaultPeriod={defaultSlotForNewEntry.period}
         classSectionId={currentSection?.id || (availableSections[0]?.id || 1)}
         classNameStr={currentSection?.name || 'Class'}
-        periods={periods}
+        periods={currentYearPeriods}
         facultyList={facultyList}
         onSuccess={fetchAllData}
       />

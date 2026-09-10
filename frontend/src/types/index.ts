@@ -72,6 +72,7 @@ export interface TimetableEntry {
 
 export interface TimetablePeriod {
   id: number;
+  year_level?: number;
   period_number: number;
   name: string;
   start_time: string;

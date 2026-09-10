@@ -158,6 +158,7 @@ class FacultyOut(BaseModel):
 
 class TimetablePeriodOut(BaseModel):
     id: int
+    year_level: int = 1
     period_number: int
     name: str
     start_time: str
@@ -172,9 +173,11 @@ class TimetablePeriodUpdate(BaseModel):
     start_time: str
     end_time: str
     name: Optional[str] = None
+    year_level: Optional[int] = None
     is_break: Optional[bool] = None
 
 class TimetablePeriodCreate(BaseModel):
+    year_level: int = 1
     period_number: int
     name: str
     start_time: str

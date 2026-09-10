@@ -59,25 +59,49 @@ def enrich_entry_out(e: TimetableEntry) -> TimetableEntryOut:
     )
 
 # =========================================================================
-# 1. CENTRALIZED TIMETABLE PERIODS (UNIVERSAL TIMINGS)
+# 1. CENTRALIZED TIMETABLE PERIODS (ACADEMIC YEAR-WISE TIMINGS)
 # =========================================================================
 
 @router.get("/periods", response_model=List[TimetablePeriodOut])
-def list_periods(db: Session = Depends(get_db)):
-    """Fetch all centralized timetable periods; auto-seeds standard defaults if empty."""
-    periods = db.query(TimetablePeriod).order_by(TimetablePeriod.period_number).all()
+def list_periods(
+    year_level: Optional[int] = Query(None, description="Optional academic year level (1-4)"),
+    db: Session = Depends(get_db)
+):
+    """Fetch timetable periods filtered optionally by academic year level (1-4). Auto-seeds standard defaults if empty."""
+    query = db.query(TimetablePeriod)
+    if year_level is not None:
+        query = query.filter(TimetablePeriod.year_level == year_level)
+    periods = query.order_by(TimetablePeriod.year_level.asc(), TimetablePeriod.period_number.asc()).all()
+
     if not periods:
-        for dp in DEFAULT_PERIODS:
-            p = TimetablePeriod(
-                period_number=dp["period_number"],
-                name=dp["name"],
-                start_time=dp["start_time"],
-                end_time=dp["end_time"],
-                is_break=dp["is_break"]
-            )
-            db.add(p)
-        db.commit()
-        periods = db.query(TimetablePeriod).order_by(TimetablePeriod.period_number).all()
+        if year_level is None:
+            for y in range(1, 5):
+                for dp in DEFAULT_PERIODS:
+                    p = TimetablePeriod(
+                        year_level=y,
+                        period_number=dp["period_number"],
+                        name=dp["name"],
+                        start_time=dp["start_time"],
+                        end_time=dp["end_time"],
+                        is_break=dp["is_break"]
+                    )
+                    db.add(p)
+            db.commit()
+            periods = db.query(TimetablePeriod).order_by(TimetablePeriod.year_level.asc(), TimetablePeriod.period_number.asc()).all()
+        else:
+            for dp in DEFAULT_PERIODS:
+                p = TimetablePeriod(
+                    year_level=year_level,
+                    period_number=dp["period_number"],
+                    name=dp["name"],
+                    start_time=dp["start_time"],
+                    end_time=dp["end_time"],
+                    is_break=dp["is_break"]
+                )
+                db.add(p)
+            db.commit()
+            periods = db.query(TimetablePeriod).filter(TimetablePeriod.year_level == year_level).order_by(TimetablePeriod.period_number.asc()).all()
+
     return periods
 
 @router.get("/subjects", response_model=List[SubjectOut])
@@ -99,9 +123,9 @@ def update_period(
     admin_user = Depends(require_admin)
 ):
     """
-    Update centralized period start/end time.
+    Update period start/end time for a specific academic year.
     Validates formatting (HH:MM), start < end, and cascades updated times to existing
-    timetable entries that matched the previous period timing.
+    timetable entries belonging to sections of that specific academic year level.
     """
     period = db.query(TimetablePeriod).filter(TimetablePeriod.id == period_id).first()
     if not period:
@@ -124,12 +148,15 @@ def update_period(
     if payload.is_break is not None:
         period.is_break = payload.is_break
 
-    # Cascade timing update to active timetable entries if time changed
+    # Cascade timing update to active timetable entries for this year level if time changed
     if old_st != st or old_et != et:
         active_version = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
         if active_version:
-            matching_entries = db.query(TimetableEntry).filter(
+            matching_entries = db.query(TimetableEntry).join(
+                ClassSection, TimetableEntry.class_section_id == ClassSection.id
+            ).filter(
                 TimetableEntry.timetable_version_id == active_version.id,
+                ClassSection.year_level == period.year_level,
                 TimetableEntry.start_time == old_st,
                 TimetableEntry.end_time == old_et
             ).all()
@@ -146,6 +173,7 @@ def update_period(
         target_id=period.id,
         details={
             "period_number": period.period_number,
+            "year_level": period.year_level,
             "old_timing": f"{old_st} - {old_et}",
             "new_timing": f"{st} - {et}",
             "name": period.name
