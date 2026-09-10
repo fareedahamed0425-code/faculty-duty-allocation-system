@@ -12,18 +12,22 @@ from app.models.entities import (
 from app.services.timetable_service import find_matched_column, normalize_time_str, parse_time_slot
 
 EXAM_NAME_ALIASES = ["exam_name", "exam", "examination", "exam_title", "title", "test_name", "test"]
-COURSE_CODE_ALIASES = ["course_code", "subject_code", "sub_code", "course", "subject_id", "code"]
-COURSE_NAME_ALIASES = ["course_name", "subject_name", "course", "subject", "sub_name", "paper"]
-CLASS_ALIASES = ["class_name", "class", "section", "branch", "batch", "class_section", "dept_class"]
+COURSE_CODE_ALIASES = ["course_code", "subject_code", "sub_code", "course", "subject_id", "code", "paper_code"]
+COURSE_NAME_ALIASES = ["course_name", "subject_name", "course", "subject", "sub_name", "paper", "paper_title"]
+CLASS_ALIASES = ["class_name", "class", "section", "branch", "batch", "class_section", "dept_class", "cohort"]
+DEPARTMENT_ALIASES = ["department", "dept", "department_code", "dept_code", "program", "course_dept"]
+SEMESTER_ALIASES = ["semester", "sem", "term", "academic_semester", "exam_sem", "year_sem"]
 DATE_ALIASES = ["date", "exam_date", "day_date", "schedule_date"]
 START_TIME_ALIASES = ["start_time", "exam_start", "start", "from_time", "exam_start_time"]
 END_TIME_ALIASES = ["end_time", "exam_end", "end", "to_time", "exam_end_time"]
-COMBINED_TIME_ALIASES = ["time", "timing", "time_slot", "slot", "duration", "exam_time", "period"]
+COMBINED_TIME_ALIASES = ["time", "timing", "time_slot", "slot", "duration", "exam_time", "period", "session_time"]
 REPORTING_TIME_ALIASES = ["reporting_time", "report_time", "reporting", "assembly_time"]
-VENUE_ALIASES = ["venue", "room", "hall", "exam_hall", "room_number", "room_no", "location"]
+VENUE_ALIASES = ["venue", "room", "hall", "exam_hall", "room_number", "room_no", "location", "hall_no"]
 FACULTY_ALIASES = ["faculty", "faculty_code", "faculty_id", "invigilator", "faculty_name", "assigned_faculty"]
 INVIGILATORS_COUNT_ALIASES = ["invigilators", "invigilators_count", "required_count", "count", "num_invigilators", "staff_count"]
 ROLE_ALIASES = ["role", "role_type", "duty_type", "invigilator_role"]
+
+APPROVED_DEPTS = ["AIDS", "AIML", "CSE", "CS", "CC", "AIHC"]
 
 def parse_time_to_minutes(time_str: str) -> int:
     """Convert '09:00 AM', '9:30', '14:00', '1:00 PM' to minutes past midnight."""
@@ -67,14 +71,54 @@ def normalize_date_str(val: Any) -> Optional[date]:
             continue
     return None
 
+def infer_department_code(text: str) -> str:
+    """Matches text against the 6 approved university departments."""
+    upper = text.upper()
+    for code in APPROVED_DEPTS:
+        if re.search(r'\b' + re.escape(code) + r'\b', upper):
+            return code
+    if "DATA SCIENCE" in upper or "DATA" in upper:
+        return "AIDS"
+    if "MACHINE LEARNING" in upper or "AIML" in upper:
+        return "AIML"
+    if "COMPUTER SCIENCE" in upper or "CSE" in upper:
+        return "CSE"
+    if "CYBER" in upper or "SECURITY" in upper:
+        return "CS"
+    if "CLOUD" in upper:
+        return "CC"
+    if "HEALTH" in upper or "MEDICAL" in upper:
+        return "AIHC"
+    return "CSE"
+
+def infer_semester_and_year(text: str) -> Tuple[int, int]:
+    """Infers semester (1-8) and academic year (1-4)."""
+    upper = text.upper()
+    m_sem = re.search(r'(?:SEM|SEMESTER)\s*[:=-]?\s*([1-8])', upper)
+    if m_sem:
+        sem = int(m_sem.group(1))
+        year = (sem + 1) // 2
+        return sem, year
+
+    if "IV " in upper or "4TH" in upper or "YEAR 4" in upper or "SEM 7" in upper or "SEM 8" in upper:
+        return 7, 4
+    if "III " in upper or "3RD" in upper or "YEAR 3" in upper or "SEM 5" in upper or "SEM 6" in upper:
+        return 5, 3
+    if "II " in upper or "2ND" in upper or "YEAR 2" in upper or "SEM 3" in upper or "SEM 4" in upper:
+        return 3, 2
+    if "I " in upper or "1ST" in upper or "YEAR 1" in upper or "SEM 1" in upper or "SEM 2" in upper:
+        return 1, 1
+
+    return 1, 1
+
 def parse_and_validate_exam_timetable(
     db: Session,
     file_bytes: bytes,
     filename: str
 ) -> Dict[str, Any]:
     """
-    Parses exam timetable spreadsheet (CSV/Excel) and validates records.
-    Returns preview entries and diagnostics.
+    Parses exam timetable spreadsheet (CSV/Excel) across multiple courses and semesters.
+    Returns segregated preview entries, course breakdowns, and batch diagnostics.
     """
     try:
         if filename.endswith(".csv"):
@@ -94,6 +138,8 @@ def parse_and_validate_exam_timetable(
     code_col = find_matched_column(columns, COURSE_CODE_ALIASES)
     name_col = find_matched_column(columns, COURSE_NAME_ALIASES)
     class_col = find_matched_column(columns, CLASS_ALIASES)
+    dept_col = find_matched_column(columns, DEPARTMENT_ALIASES)
+    sem_col = find_matched_column(columns, SEMESTER_ALIASES)
     date_col = find_matched_column(columns, DATE_ALIASES)
     start_col = find_matched_column(columns, START_TIME_ALIASES)
     end_col = find_matched_column(columns, END_TIME_ALIASES)
@@ -107,7 +153,7 @@ def parse_and_validate_exam_timetable(
     # Validate essential columns
     missing = []
     if not (code_col or name_col or exam_col):
-        missing.append("Course / Exam Name")
+        missing.append("Course / Subject / Exam Name")
     if not date_col:
         missing.append("Exam Date")
     if not (start_col or combined_time_col):
@@ -130,20 +176,27 @@ def parse_and_validate_exam_timetable(
         exam_name_val = str(row[exam_col]).strip() if exam_col and not pd.isna(row[exam_col]) else "Semester Examination 2026"
         
         # 2. Course Code & Name
-        code_val = str(row[code_col]).strip() if code_col and not pd.isna(row[code_col]) else "EXAM"
+        code_val = str(row[code_col]).strip().upper() if code_col and not pd.isna(row[code_col]) else "EXAM"
         name_val = str(row[name_col]).strip() if name_col and not pd.isna(row[name_col]) else (code_val if code_val != "EXAM" else exam_name_val)
 
         # 3. Class section
         class_val = str(row[class_col]).strip() if class_col and not pd.isna(row[class_col]) else "All Sections"
 
-        # 4. Date
+        # 4. Department / Course Code & Semester
+        raw_dept_str = str(row[dept_col]).strip() if dept_col and not pd.isna(row[dept_col]) else f"{class_val} {code_val} {name_val}"
+        dept_code_val = infer_department_code(raw_dept_str)
+
+        raw_sem_str = str(row[sem_col]).strip() if sem_col and not pd.isna(row[sem_col]) else f"{class_val} {name_val}"
+        sem_val, year_val = infer_semester_and_year(raw_sem_str)
+
+        # 5. Date
         date_raw = row[date_col] if date_col and not pd.isna(row[date_col]) else None
         parsed_date = normalize_date_str(date_raw)
         if not parsed_date:
             errors.append(f"Row {row_num}: Invalid or missing date format '{date_raw}'.")
             continue
 
-        # 5. Times
+        # 6. Times
         start_time_val = None
         end_time_val = None
         if combined_time_col and not pd.isna(row[combined_time_col]):
@@ -158,31 +211,26 @@ def parse_and_validate_exam_timetable(
         if not end_time_val and end_col and not pd.isna(row[end_col]):
             end_time_val = normalize_time_str(str(row[end_col]))
 
-        if not start_time_val:
-            start_time_val = "09:30"
-        if not end_time_val:
-            # Default +3 hours from start
-            s_min = parse_time_to_minutes(start_time_val)
-            e_min = s_min + 180
-            end_time_val = f"{e_min // 60:02d}:{e_min % 60:02d}"
+        start_time_val = start_time_val or "09:30"
+        end_time_val = end_time_val or "12:30"
 
-        # 6. Reporting time (default 30 mins prior to exam start)
+        # 7. Reporting Time
+        reporting_val = None
         if reporting_col and not pd.isna(row[reporting_col]):
-            reporting_val = normalize_time_str(str(row[reporting_col])) or "09:00"
-        else:
+            reporting_val = normalize_time_str(str(row[reporting_col]))
+        if not reporting_val:
             s_min = parse_time_to_minutes(start_time_val)
-            r_min = max(0, s_min - 30)
-            reporting_val = f"{r_min // 60:02d}:{r_min % 60:02d}"
+            rep_min = max(0, s_min - 30)
+            reporting_val = f"{rep_min // 60:02d}:{rep_min % 60:02d}"
 
-        # 7. Venue
-        venue_val = str(row[venue_col]).strip() if venue_col and not pd.isna(row[venue_col]) else "Main Exam Hall"
-
-        # 8. Faculty or Invigilator count
+        # 8. Venue & Staff requirements
+        venue_val = str(row[venue_col]).strip() if venue_col and not pd.isna(row[venue_col]) else "Exam Hall B-204"
         faculty_val = str(row[faculty_col]).strip() if faculty_col and not pd.isna(row[faculty_col]) else "DYNAMIC"
+        
         count_val = 1
         if count_col and not pd.isna(row[count_col]):
             try:
-                count_val = max(1, int(row[count_col]))
+                count_val = max(1, int(float(str(row[count_col]))))
             except ValueError:
                 count_val = 1
 
@@ -193,8 +241,11 @@ def parse_and_validate_exam_timetable(
             "exam_name": exam_name_val,
             "course_code": code_val,
             "course_name": name_val,
-            "class_name": class_val,
-            "date": str(parsed_date),
+            "class_section": class_val,
+            "department_code": dept_code_val,
+            "semester": sem_val,
+            "academic_year": year_val,
+            "date": parsed_date.strftime("%Y-%m-%d"),
             "reporting_time": reporting_val,
             "exam_start_time": start_time_val,
             "exam_end_time": end_time_val,
@@ -206,12 +257,30 @@ def parse_and_validate_exam_timetable(
         preview_entries.append(entry)
         valid_count += 1
 
+    # Segregation metrics breakdown across courses & semesters
+    course_breakdown = {}
+    semester_breakdown = {}
+    venue_breakdown = {}
+
+    for e in preview_entries:
+        c_code = e["department_code"]
+        course_breakdown[c_code] = course_breakdown.get(c_code, 0) + 1
+
+        s_num = f"Semester {e['semester']} (Year {e['academic_year']})"
+        semester_breakdown[s_num] = semester_breakdown.get(s_num, 0) + 1
+
+        v_name = e["venue"]
+        venue_breakdown[v_name] = venue_breakdown.get(v_name, 0) + 1
+
     return {
         "filename": filename,
         "total_rows": len(df),
         "valid_rows_count": valid_count,
         "error_count": len(errors),
         "errors": errors,
+        "course_breakdown": course_breakdown,
+        "semester_breakdown": semester_breakdown,
+        "venue_breakdown": venue_breakdown,
         "preview_entries": preview_entries[:50],
         "all_valid_entries": preview_entries
     }
@@ -224,16 +293,31 @@ def execute_exam_timetable_import_and_dispatch(
 ) -> Dict[str, Any]:
     """
     Commits batch exam schedule entries.
-    Dynamically balances & allocates invigilators, generates notifications,
-    and updates timetable exam sessions.
+    Dynamically balances & allocates invigilators using mathematical constraint scoring,
+    dispatches unified notifications, and integrates with the active timetable.
     """
     active_tt = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
-    all_faculties = db.query(Faculty).filter(Faculty.status == "ACTIVE").all()
+    
+    # Filter only active, non-exempt teaching faculty
+    all_faculties = db.query(Faculty).filter(
+        Faculty.status == "ACTIVE",
+        Faculty.is_exempt == False,
+        Faculty.is_substitution_eligible == True
+    ).all()
+
+    # Fallback to all active faculties if filtered pool is too small
+    if not all_faculties:
+        all_faculties = db.query(Faculty).filter(Faculty.status == "ACTIVE").all()
+
     faculty_by_code = {f.faculty_id.upper(): f for f in all_faculties}
     faculty_by_name = {f.name.lower(): f for f in all_faculties}
 
     allocated_duties = []
     dispatched_notifications = 0
+
+    # Track duties assigned during this batch run to guarantee intra-batch balance
+    batch_duty_counts = {f.id: 0 for f in all_faculties}
+    faculty_daily_assignments = {}  # (faculty_id, exam_date) -> count
 
     for entry in entries:
         exam_date = normalize_date_str(entry["date"])
@@ -241,12 +325,13 @@ def execute_exam_timetable_import_and_dispatch(
             continue
 
         exam_name = entry.get("exam_name", "Semester Examination 2026")
-        course_code = entry.get("course_code")
+        course_code = entry.get("course_code", "EXAM")
         course_name = entry.get("course_name", "Course Examination")
+        dept_code = entry.get("department_code", "CSE")
         reporting_time = entry.get("reporting_time", "09:00")
         start_time = entry.get("exam_start_time", "09:30")
         end_time = entry.get("exam_end_time", "12:30")
-        venue = entry.get("venue", "Exam Hall")
+        venue = entry.get("venue", "Exam Hall B-204")
         role_type = entry.get("role_type", "Room Invigilator")
         assigned_val = str(entry.get("faculty_assigned", "DYNAMIC")).strip()
         invigilator_count = max(1, int(entry.get("invigilators_count", 1)))
@@ -258,25 +343,25 @@ def execute_exam_timetable_import_and_dispatch(
 
         chosen_faculties: List[Faculty] = []
 
-        # Case A: Specific Faculty Code/Name provided in spreadsheet
+        # Case A: Specific Faculty Code or Name provided in spreadsheet
         if assigned_val.upper() not in ["DYNAMIC", "AUTO", "ANY", "NONE", ""]:
             fac = faculty_by_code.get(assigned_val.upper()) or faculty_by_name.get(assigned_val.lower())
             if fac:
                 chosen_faculties.append(fac)
 
-        # Case B: Dynamic Smart Allocation
+        # Case B: Dynamic Mathematical Allocation
         if len(chosen_faculties) < invigilator_count:
             needed = invigilator_count - len(chosen_faculties)
             already_chosen_ids = {f.id for f in chosen_faculties}
             
             weekday = exam_date.weekday()
-            available = []
+            candidate_pool = []
 
             for fac in all_faculties:
                 if fac.id in already_chosen_ids:
                     continue
 
-                # 1. Leave Check
+                # 1. Leave / Absence Hard Constraint
                 on_leave = db.query(Absence).filter(
                     Absence.faculty_id == fac.id,
                     Absence.date <= exam_date,
@@ -286,7 +371,7 @@ def execute_exam_timetable_import_and_dispatch(
                 if on_leave:
                     continue
 
-                # 2. Existing Exam Duty Overlap
+                # 2. Existing Exam Duty Overlap Hard Constraint
                 existing_ed = db.query(ExamDuty).filter(
                     ExamDuty.assigned_faculty_id == fac.id,
                     ExamDuty.date == exam_date,
@@ -302,7 +387,7 @@ def execute_exam_timetable_import_and_dispatch(
                 if has_exam_conflict:
                     continue
 
-                # 3. Regular Class Conflict
+                # 3. Regular Timetable Class Collision Hard Constraint
                 if active_tt:
                     tt_entries = db.query(TimetableEntry).filter(
                         TimetableEntry.timetable_version_id == active_tt.id,
@@ -319,26 +404,42 @@ def execute_exam_timetable_import_and_dispatch(
                     if has_tt_conflict:
                         continue
 
-                # Count current exam duties for load balance
-                duty_count = db.query(ExamDuty).filter(
+                # 4. Daily Duty Cap (Preference: max 1 exam duty per calendar day)
+                same_day_assigned = faculty_daily_assignments.get((fac.id, exam_date), 0)
+
+                # 5. Workload Balancer & Neutrality Scoring
+                prior_exam_duties = db.query(ExamDuty).filter(
                     ExamDuty.assigned_faculty_id == fac.id,
                     ExamDuty.status != "CANCELLED"
                 ).count()
 
-                sub_count = db.query(SubstitutionDuty).filter(
+                prior_sub_duties = db.query(SubstitutionDuty).filter(
                     SubstitutionDuty.assigned_faculty_id == fac.id,
                     SubstitutionDuty.status != "CANCELLED"
                 ).count()
 
-                available.append({
+                total_exam_load = prior_exam_duties + batch_duty_counts.get(fac.id, 0)
+                
+                # Neutrality: bonus if faculty department is different from course exam department
+                is_dept_neutral = fac.department and fac.department.code != dept_code
+                neutral_bonus = 20 if is_dept_neutral else 0
+
+                # Score: higher is better
+                score = 100 - (15 * total_exam_load) - (5 * prior_sub_duties) - (50 * same_day_assigned) + neutral_bonus
+
+                candidate_pool.append({
                     "faculty": fac,
-                    "duty_count": duty_count,
-                    "sub_count": sub_count
+                    "score": score,
+                    "same_day_assigned": same_day_assigned,
+                    "total_exam_load": total_exam_load
                 })
 
-            available.sort(key=lambda x: (x["duty_count"], x["sub_count"], x["faculty"].name))
-            for cand in available[:needed]:
+            # Sort candidate pool by highest score
+            candidate_pool.sort(key=lambda x: (x["score"], -x["total_exam_load"]), reverse=True)
+            for cand in candidate_pool[:needed]:
                 chosen_faculties.append(cand["faculty"])
+                batch_duty_counts[cand["faculty"].id] = batch_duty_counts.get(cand["faculty"].id, 0) + 1
+                faculty_daily_assignments[(cand["faculty"].id, exam_date)] = faculty_daily_assignments.get((cand["faculty"].id, exam_date), 0) + 1
 
         # Create ExamDuty records and Notifications for each chosen faculty
         for fac in chosen_faculties:
@@ -362,13 +463,13 @@ def execute_exam_timetable_import_and_dispatch(
             db.flush()
             allocated_duties.append(duty)
 
-            # Send rich interactive notification card to the assigned faculty
+            # Dispatch rich interactive notification card to the assigned faculty
             if fac.user_id:
                 notif = Notification(
                     user_id=fac.user_id,
-                    title=f"📋 Exam Duty Scheduled: {exam_name}",
+                    title=f"📋 Exam Invigilation Allocated: {exam_name}",
                     message=(
-                        f"You have been allotted {role_type} for {course_name} on {exam_date}. "
+                        f"You are allocated as {role_type} for {course_code} - {course_name} on {exam_date}. "
                         f"Reporting: {reporting_time} | Exam: {start_time}-{end_time} | Venue: {venue}"
                     ),
                     notification_type="EXAM_DUTY_ALLOCATED",
@@ -377,6 +478,7 @@ def execute_exam_timetable_import_and_dispatch(
                         "exam_name": exam_name,
                         "course_code": course_code,
                         "course_name": course_name,
+                        "department_code": dept_code,
                         "date": str(exam_date),
                         "reporting_time": reporting_time,
                         "exam_start_time": start_time,
@@ -389,14 +491,14 @@ def execute_exam_timetable_import_and_dispatch(
                 db.add(notif)
                 dispatched_notifications += 1
 
-    # Log audit event
+    # Log to Audit Trail
     audit = AuditLog(
-        event_type="BATCH_EXAM_TIMETABLE_DISPATCHED",
-        actor_name=current_user.full_name if hasattr(current_user, "full_name") else "Admin",
-        target_type="EXAM_DUTY_BATCH",
+        event_type="EXAM_DUTIES_BATCH_ALLOCATED",
+        actor_id=current_user.id if hasattr(current_user, "id") else None,
+        actor_name=current_user.full_name if hasattr(current_user, "full_name") else "Administrator",
+        target_type="EXAM_DUTY",
         details={
-            "total_exam_slots": len(entries),
-            "allocated_invigilators_count": len(allocated_duties),
+            "total_duties_created": len(allocated_duties),
             "notifications_dispatched": dispatched_notifications
         }
     )
@@ -404,9 +506,8 @@ def execute_exam_timetable_import_and_dispatch(
     db.commit()
 
     return {
-        "success": True,
-        "total_exam_slots": len(entries),
-        "total_invigilators_allocated": len(allocated_duties),
+        "status": "success",
+        "total_duties_allocated": len(allocated_duties),
         "notifications_dispatched": dispatched_notifications,
-        "message": f"Successfully processed {len(entries)} exam slots and dynamically allocated {len(allocated_duties)} invigilation duties with instant notifications!"
+        "message": f"Successfully allocated and dispatched {len(allocated_duties)} exam duty assignment(s) across all courses and venues with {dispatched_notifications} real-time alert notifications!"
     }

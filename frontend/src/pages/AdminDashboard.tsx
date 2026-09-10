@@ -892,9 +892,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
                     className="w-full text-xs rounded-xl border border-sky-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-sky-500 font-medium"
                   >
                     <option value="">All Departments</option>
-                    <option value="1">Computer Science & Engineering</option>
-                    <option value="2">Electronics & Communication</option>
-                    <option value="3">Mechanical Engineering</option>
+                    <option value="1">Artificial Intelligence and Data Science (AIDS)</option>
+                    <option value="2">Artificial Intelligence and Machine Learning (AIML)</option>
+                    <option value="3">Computer Science Engineering (CSE)</option>
+                    <option value="4">Cyber Security (CS)</option>
+                    <option value="5">Cloud Computing (CC)</option>
+                    <option value="6">Artificial Intelligence in Healthcare (AIHC)</option>
                   </select>
                 </div>
               </div>

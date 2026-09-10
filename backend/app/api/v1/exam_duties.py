@@ -455,10 +455,12 @@ def download_exam_timetable_template():
     """Download standard sample CSV template for bulk exam timetable uploads."""
     csv_content = (
         "Exam Name,Course Code,Course Name,Class Section,Date,Reporting Time,Exam Time Slot,Venue,Invigilators Count,Role Type,Faculty Assigned\n"
-        "Mid-Term Examination 2026,CS301,Database Management Systems,CSE-A,2026-09-22,09:00 AM,09:30 AM - 12:30 PM,Exam Hall B-204,2,Room Invigilator,DYNAMIC\n"
-        "Mid-Term Examination 2026,EC201,Digital Signal Processing,ECE-A,2026-09-22,09:00 AM,09:30 AM - 12:30 PM,LH-101,1,Room Invigilator,DYNAMIC\n"
-        "Mid-Term Examination 2026,ME301,Thermodynamics,MECH-A,2026-09-23,01:30 PM,02:00 PM - 05:00 PM,Exam Hall A-102,2,Room Invigilator,DYNAMIC\n"
-        "End-Term Examination 2026,CS401,Cloud Computing & Architecture,CSE-B,2026-09-24,09:00 AM,09:30 AM - 12:30 PM,Block-3 Auditorium,3,Room Invigilator,DYNAMIC\n"
+        "Mid-Term Examination 2026,CS101,Data Structures & Algorithms,I CSE-A,2026-09-22,09:00 AM,09:30 AM - 12:30 PM,Exam Hall B-204,2,Room Invigilator,DYNAMIC\n"
+        "Mid-Term Examination 2026,AI201,Artificial Intelligence & Expert Systems,II AIML-A,2026-09-22,09:00 AM,09:30 AM - 12:30 PM,LH-101,1,Room Invigilator,DYNAMIC\n"
+        "Mid-Term Examination 2026,DS201,Data Science & Big Data Analytics,II AIDS-A,2026-09-23,01:30 PM,02:00 PM - 05:00 PM,Exam Hall A-102,2,Room Invigilator,DYNAMIC\n"
+        "End-Term Examination 2026,SEC301,Network Security & Cryptography,III CS-A,2026-09-24,09:00 AM,09:30 AM - 12:30 PM,Block-3 Auditorium,3,Room Invigilator,DYNAMIC\n"
+        "End-Term Examination 2026,CLD301,Cloud Infrastructure & Virtualization,III CC-A,2026-09-24,09:00 AM,09:30 AM - 12:30 PM,Exam Hall B-205,2,Room Invigilator,DYNAMIC\n"
+        "End-Term Examination 2026,HC401,AI in Medical Diagnostics,IV AIHC-A,2026-09-25,09:00 AM,09:30 AM - 12:30 PM,Exam Hall C-301,2,Room Invigilator,DYNAMIC\n"
     )
     from fastapi import Response
     return Response(

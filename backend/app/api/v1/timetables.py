@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from app.db.session import get_db
@@ -60,9 +60,9 @@ def list_versions(db: Session = Depends(get_db)):
 
 @router.get("/active/entries", response_model=List[TimetableEntryOut])
 def get_active_timetable_entries(
-    faculty_id: Optional[int] = None,
-    class_section_id: Optional[int] = None,
-    day_of_week: Optional[int] = None,
+    faculty_id: Optional[str] = Query(None),
+    class_section_id: Optional[str] = Query(None),
+    day_of_week: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
     # Ping connection — recover from server-closed connections silently
@@ -86,10 +86,10 @@ def get_active_timetable_entries(
         .filter(TimetableEntry.timetable_version_id == active_version.id)
     )
 
-    if faculty_id:
-        query = query.filter(TimetableEntry.faculty_id == faculty_id)
-    if class_section_id:
-        query = query.filter(TimetableEntry.class_section_id == class_section_id)
+    if faculty_id and str(faculty_id).strip().isdigit():
+        query = query.filter(TimetableEntry.faculty_id == int(faculty_id))
+    if class_section_id and str(class_section_id).strip().isdigit():
+        query = query.filter(TimetableEntry.class_section_id == int(class_section_id))
     if day_of_week is not None:
         query = query.filter(TimetableEntry.day_of_week == day_of_week)
 
@@ -150,13 +150,12 @@ def download_timetable_template_csv():
     import pandas as pd
 
     sample_data = [
-        {"Faculty": "Prof. Arun Kumar", "Faculty Code": "FAC-008", "Class": "CSE-A", "Subject": "Data Structures & Algorithms", "Subject Code": "CS101", "Day": "Monday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 101"},
-        {"Faculty": "Prof. Priya Nair", "Faculty Code": "FAC-009", "Class": "CSE-B", "Subject": "Operating Systems", "Subject Code": "CS102", "Day": "Monday", "Start Time": "10:00", "End Time": "11:00", "Room": "Hall 102"},
-        {"Faculty": "Prof. Mohammad Ahmed", "Faculty Code": "FAC-010", "Class": "CSE-C", "Subject": "Database Management Systems", "Subject Code": "CS103", "Day": "Tuesday", "Start Time": "11:15", "End Time": "12:15", "Room": "Hall 103"},
-        {"Faculty": "Prof. Manoj Verma", "Faculty Code": "FAC-011", "Class": "ECE-A", "Subject": "Digital Signal Processing", "Subject Code": "EC201", "Day": "Wednesday", "Start Time": "13:15", "End Time": "14:15", "Room": "Lab 201"},
-        {"Faculty": "Prof. Divya Krishnan", "Faculty Code": "FAC-012", "Class": "ECE-B", "Subject": "VLSI Design & Technology", "Subject Code": "EC202", "Day": "Thursday", "Start Time": "14:15", "End Time": "15:15", "Room": "Lab 202"},
-        {"Faculty": "Prof. Sanjay Mehta", "Faculty Code": "FAC-013", "Class": "MECH-A", "Subject": "Engineering Thermodynamics", "Subject Code": "ME301", "Day": "Friday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 301"},
-        {"Faculty": "Prof. Kavita Reddy", "Faculty Code": "FAC-014", "Class": "MECH-B", "Subject": "Calculus & Linear Algebra", "Subject Code": "MA101", "Day": "Saturday", "Start Time": "10:00", "End Time": "11:00", "Room": "Hall 302"}
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-001", "Class": "I CSE-A", "Subject": "Data Structures & Algorithms", "Subject Code": "CS101", "Day": "Monday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 101"},
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-002", "Class": "II AIML-A", "Subject": "Artificial Intelligence", "Subject Code": "AI201", "Day": "Monday", "Start Time": "10:00", "End Time": "11:00", "Room": "Hall 102"},
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-003", "Class": "II AIDS-A", "Subject": "Data Science", "Subject Code": "DS201", "Day": "Tuesday", "Start Time": "11:15", "End Time": "12:15", "Room": "Hall 103"},
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-004", "Class": "III CS-A", "Subject": "Network Security", "Subject Code": "SEC301", "Day": "Wednesday", "Start Time": "13:15", "End Time": "14:15", "Room": "Lab 201"},
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-005", "Class": "III CC-A", "Subject": "Cloud Computing", "Subject Code": "CLD301", "Day": "Thursday", "Start Time": "14:15", "End Time": "15:15", "Room": "Lab 202"},
+        {"Faculty": "Faculty Member", "Faculty Code": "FAC-006", "Class": "IV AIHC-A", "Subject": "AI in Healthcare", "Subject Code": "HC401", "Day": "Friday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 301"}
     ]
     df = pd.DataFrame(sample_data)
     stream = io.StringIO()

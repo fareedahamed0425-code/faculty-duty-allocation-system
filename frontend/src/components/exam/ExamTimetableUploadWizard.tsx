@@ -191,31 +191,60 @@ export const ExamTimetableUploadWizard: React.FC<ExamTimetableUploadWizardProps>
             </div>
           )}
 
+          {/* Course & Semester Multi-Tier Segregation Breakdown */}
+          {(previewData.course_breakdown || previewData.semester_breakdown) && (
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-bold text-slate-700 mr-1 text-[11px]">Segregated Courses:</span>
+                {Object.entries(previewData.course_breakdown || {}).map(([c, cnt]: [string, any]) => (
+                  <span key={c} className="px-2 py-0.5 rounded-md bg-[#0e3b4b] text-white font-bold text-[10px]">
+                    {c}: {cnt} Exam(s)
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-bold text-slate-700 mr-1 text-[11px]">Semesters / Years:</span>
+                {Object.entries(previewData.semester_breakdown || {}).map(([s, cnt]: [string, any]) => (
+                  <span key={s} className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 font-semibold text-[10px] border border-sky-200">
+                    {s}: {cnt}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Exam Schedule Preview Table */}
           <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 border-b border-slate-200">
                 <tr>
-                  <th className="p-2.5">Exam & Course</th>
+                  <th className="p-2.5">Exam, Course & Semester</th>
                   <th className="p-2.5">Date</th>
-                  <th className="p-2.5">Timing</th>
-                  <th className="p-2.5">Venue</th>
-                  <th className="p-2.5">Invigilator Strategy</th>
+                  <th className="p-2.5">Session Timing</th>
+                  <th className="p-2.5">Assigned Venue</th>
+                  <th className="p-2.5">Invigilation Strategy</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(previewData.preview_entries || []).map((e: any, idx: number) => (
                   <tr key={idx} className="hover:bg-slate-50">
                     <td className="p-2.5">
-                      <span className="font-bold text-slate-900 block">{e.course_name} ({e.course_code})</span>
-                      <span className="text-[11px] text-slate-500">{e.exam_name} • {e.class_name}</span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-extrabold text-[10px]">
+                          {e.department_code || 'CSE'}
+                        </span>
+                        <span className="font-bold text-slate-900 block">{e.course_name} ({e.course_code})</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        {e.exam_name} • Sem {e.semester || 1} (Year {e.academic_year || 1}) • {e.class_section}
+                      </span>
                     </td>
                     <td className="p-2.5 font-medium text-slate-800">{e.date}</td>
                     <td className="p-2.5">
                       <span className="font-bold text-slate-800 block">{e.exam_start_time} - {e.exam_end_time}</span>
-                      <span className="text-[10px] text-amber-800">Report: {e.reporting_time}</span>
+                      <span className="text-[10px] text-amber-800 font-medium">Report: {e.reporting_time}</span>
                     </td>
-                    <td className="p-2.5 font-medium text-slate-700">{e.venue}</td>
+                    <td className="p-2.5 font-bold text-slate-700">{e.venue}</td>
                     <td className="p-2.5">
                       <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[10px]">
                         {e.faculty_assigned === 'DYNAMIC' ? `⚡ Dynamic (${e.invigilators_count} Staff)` : e.faculty_assigned}
@@ -230,7 +259,7 @@ export const ExamTimetableUploadWizard: React.FC<ExamTimetableUploadWizardProps>
           <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 text-xs text-sky-900 flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-sky-700 shrink-0" />
             <span>
-              During confirmation, the Dynamic Allocation Engine will verify live absences, existing exam overlaps, and timetable collisions to assign optimal faculty members and immediately push duty notifications.
+              During confirmation, the Dynamic Allocation Engine evaluates live absences, exam overlaps, neutrality balancing, and timetable collisions to allocate faculty members and immediately push alerts.
             </span>
           </div>
 

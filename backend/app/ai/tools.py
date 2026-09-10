@@ -22,7 +22,7 @@ TOOL_DEFINITIONS = [
                 "type": "object",
                 "properties": {
                     "search_query": {"type": "string", "description": "Optional name or faculty ID search"},
-                    "department_code": {"type": "string", "description": "Optional department filter like CSE, ECE"}
+                    "department_code": {"type": "string", "description": "Optional department filter like AIDS, AIML, CSE, CS, CC, AIHC"}
                 }
             }
         }
