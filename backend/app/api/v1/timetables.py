@@ -11,7 +11,7 @@ from app.schemas.schemas import (
     TimetableVersionOut, TimetableEntryOut, TimetableEntryCreate, TimetableEntryUpdate,
     TimetableImportPreview, TimetableImportConfirm, TimetablePeriodOut, TimetablePeriodUpdate,
     TimetablePeriodCreate, YearHierarchyItem, CourseHierarchyItem, SectionHierarchyItem,
-    ClassSectionCreate
+    ClassSectionCreate, SubjectOut
 )
 from app.api.deps import get_current_user, require_admin
 from app.services.timetable_service import (
@@ -79,6 +79,17 @@ def list_periods(db: Session = Depends(get_db)):
         db.commit()
         periods = db.query(TimetablePeriod).order_by(TimetablePeriod.period_number).all()
     return periods
+
+@router.get("/subjects", response_model=List[SubjectOut])
+def list_subjects(
+    department_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Fetch all institutional subjects or subjects filtered by department."""
+    query = db.query(Subject).filter(Subject.is_active == True)
+    if department_id:
+        query = query.filter(Subject.department_id == department_id)
+    return query.order_by(Subject.code.asc()).all()
 
 @router.put("/periods/{period_id}", response_model=TimetablePeriodOut)
 def update_period(

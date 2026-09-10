@@ -62,7 +62,7 @@ export const TimetableEntryModal: React.FC<TimetableEntryModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       // Fetch subjects
-      apiClient.get<SubjectItem[]>('/subjects')
+      apiClient.get<SubjectItem[]>('/timetables/subjects')
         .then((res) => {
           setSubjects(res.data);
           if (!entry && res.data.length > 0) {

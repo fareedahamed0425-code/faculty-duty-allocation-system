@@ -92,7 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         apiClient.get<DashboardStats>('/reports/dashboard'),
         apiClient.get<any[]>('/substitutions/duties'),
         apiClient.get<Faculty[]>('/faculty'),
-        apiClient.get<User[]>('/auth/users'),
+        apiClient.get<User[]>('/users'),
       ]);
       setStats(statsRes.data);
       setRecentDuties(dutiesRes.data.slice(0, 6));
