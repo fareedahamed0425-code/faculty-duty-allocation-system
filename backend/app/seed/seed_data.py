@@ -13,7 +13,9 @@ ROLES_METADATA = [
     {"name": "ADMIN", "description": "System Administrator with full access", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["all"]},
     {"name": "FACULTY", "description": "Standard Teaching Faculty (Substitution Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties", "request_leaves"]},
     {"name": "DEAN", "description": "Dean of Academic Affairs (Academic governance & reports, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "view_timetables", "view_compliance"]},
+    {"name": "HOD", "description": "Head of Department (Department management & workload, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_department", "view_reports", "manage_substitutions"]},
     {"name": "PC", "description": "Program Coordinator (Curriculum & Class Monitoring, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_classes", "view_timetables"]},
+    {"name": "COMMITTEE_MEMBER", "description": "Examination & Academic Committee Member (Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports", "manage_exams"]},
     {"name": "INTERNAL_MEMBERS", "description": "Internal Members (Institutional Committee & Department Core, Exempt)", "is_default_exempt": True, "is_default_eligible": False, "permissions": ["view_dashboard", "view_reports"]},
     {"name": "ADDITIONAL_MEMBERS", "description": "Additional Members (Adjunct / Extended Academic Staff, Eligible)", "is_default_exempt": False, "is_default_eligible": True, "permissions": ["view_my_schedule", "view_my_duties", "request_leaves"]}
 ]
@@ -263,7 +265,10 @@ def seed_database(db: Session = None, include_demo_data: bool = False):
             {"code": "CSE", "name": "Computer Science Engineering", "description": "Department of Computer Science Engineering"},
             {"code": "CS", "name": "Cyber Security", "description": "Department of Cyber Security"},
             {"code": "CC", "name": "Cloud Computing", "description": "Department of Cloud Computing"},
-            {"code": "AIHC", "name": "Artificial Intelligence and Healthcare", "description": "Department of Artificial Intelligence and Healthcare"}
+            {"code": "AIHC", "name": "Artificial Intelligence and Healthcare", "description": "Department of Artificial Intelligence and Healthcare"},
+            {"code": "ECE", "name": "Electronics & Communication Engineering", "description": "Department of Electronics and Communication"},
+            {"code": "MECH", "name": "Mechanical Engineering", "description": "Department of Mechanical Engineering"},
+            {"code": "MATH", "name": "Department of Mathematics & Sciences", "description": "Department of Mathematics and Foundational Sciences"}
         ]
         dept_map = {}
         for d_dict in departments_data:

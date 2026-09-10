@@ -193,12 +193,19 @@ class TimetableImportPreview(BaseModel):
     total_rows: int
     valid_rows_count: int
     error_count: int
-    warning_count: int
+    warning_count: int = 0
     conflict_count: int
     errors: List[str] = []
     warnings: List[str] = []
     conflicts: List[Dict[str, Any]] = []
     preview_entries: List[Dict[str, Any]] = []
+    # Full entry list carried through to confirm step
+    all_valid_entries: List[Dict[str, Any]] = []
+    # AI scan metadata
+    sheets_scanned: Optional[List[str]] = None
+    ai_scan_performed: bool = False
+    classes_summary: Optional[List[Dict[str, Any]]] = None
+    message: Optional[str] = None
 
 class TimetableImportConfirm(BaseModel):
     version_name: str
@@ -206,6 +213,7 @@ class TimetableImportConfirm(BaseModel):
     semester: int = 1
     activate_immediately: bool = True
     entries: List[Dict[str, Any]]
+
 
 # --- Absences & Leaves ---
 class AbsenceCreate(BaseModel):
@@ -337,6 +345,39 @@ class ExamDutyOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DynamicExamAllocationRequest(BaseModel):
+    exam_name: str
+    course_code: Optional[str] = None
+    course_name: str
+    date: date
+    reporting_time: str  # e.g. "08:30 AM"
+    exam_start_time: str  # e.g. "09:00 AM"
+    exam_end_time: str  # e.g. "12:00 PM"
+    venue: str  # e.g. "Exam Hall B-204"
+    role_type: str = "Room Invigilator"
+    required_count: int = 1
+    department_id: Optional[int] = None
+    strict_timetable_check: bool = True
+    target_roles: List[str] = ["FACULTY", "DEAN", "PC"]
+    instructions: Optional[str] = None
+
+class DynamicExamCandidateEvaluation(BaseModel):
+    faculty_id: int
+    faculty_name: str
+    faculty_code: str
+    department_name: str
+    status: str  # "SELECTED", "UNAVAILABLE_ABSENT", "UNAVAILABLE_EXAM_CONFLICT", "UNAVAILABLE_CLASS_CONFLICT", "AVAILABLE"
+    reason: str
+    current_exam_duty_count: int
+
+class DynamicExamAllocationOut(BaseModel):
+    allocated_duties: List[ExamDutyOut]
+    total_requested: int
+    total_allocated: int
+    evaluations: List[DynamicExamCandidateEvaluation]
+    summary_message: str
+
 
 
 # --- Substitution Requirements & Duties ---

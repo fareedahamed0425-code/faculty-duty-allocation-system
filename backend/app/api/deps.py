@@ -28,9 +28,19 @@ def get_current_user(
     # 1. Try decoding with institutional SECRET_KEY
     try:
         payload = jwt.decode(clean_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id_str: str = payload.get("sub")
-        if user_id_str:
-            user = db.query(User).filter(User.id == int(user_id_str)).first()
+        sub_val = payload.get("sub")
+        email_val = payload.get("email")
+        if sub_val is not None:
+            if str(sub_val).isdigit():
+                user = db.query(User).filter(User.id == int(sub_val)).first()
+                if user and user.is_active:
+                    return user
+            elif "@" in str(sub_val):
+                user = db.query(User).filter(User.email == str(sub_val).strip().lower()).first()
+                if user and user.is_active:
+                    return user
+        if email_val:
+            user = db.query(User).filter(User.email == str(email_val).strip().lower()).first()
             if user and user.is_active:
                 return user
     except Exception:

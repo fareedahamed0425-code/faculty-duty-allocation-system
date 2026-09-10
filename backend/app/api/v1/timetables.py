@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import text
 from app.db.session import get_db
 from app.models.entities import TimetableVersion, TimetableEntry, Faculty, ClassSection, Subject
 from app.schemas.schemas import (
@@ -12,6 +13,7 @@ from app.services.timetable_service import parse_and_validate_timetable_file, co
 router = APIRouter()
 
 def enrich_entry_out(e: TimetableEntry) -> TimetableEntryOut:
+    """Build TimetableEntryOut from a fully-loaded TimetableEntry (no lazy queries)."""
     return TimetableEntryOut(
         id=e.id,
         timetable_version_id=e.timetable_version_id,
@@ -30,7 +32,18 @@ def enrich_entry_out(e: TimetableEntry) -> TimetableEntryOut:
 
 @router.get("/versions", response_model=List[TimetableVersionOut])
 def list_versions(db: Session = Depends(get_db)):
-    versions = db.query(TimetableVersion).order_by(TimetableVersion.id.desc()).all()
+    # Ping the connection first to catch stale connections early
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db.rollback()
+
+    versions = (
+        db.query(TimetableVersion)
+        .options(joinedload(TimetableVersion.entries))
+        .order_by(TimetableVersion.id.desc())
+        .all()
+    )
     out = []
     for v in versions:
         out.append(TimetableVersionOut(
@@ -52,11 +65,27 @@ def get_active_timetable_entries(
     day_of_week: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
+    # Ping connection — recover from server-closed connections silently
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db.rollback()
+
     active_version = db.query(TimetableVersion).filter(TimetableVersion.is_active == True).first()
     if not active_version:
         return []
 
-    query = db.query(TimetableEntry).filter(TimetableEntry.timetable_version_id == active_version.id)
+    # Eagerly load all relationships in a single JOIN query — no lazy loads, no stale connection risk
+    query = (
+        db.query(TimetableEntry)
+        .options(
+            joinedload(TimetableEntry.faculty),
+            joinedload(TimetableEntry.class_section),
+            joinedload(TimetableEntry.subject),
+        )
+        .filter(TimetableEntry.timetable_version_id == active_version.id)
+    )
+
     if faculty_id:
         query = query.filter(TimetableEntry.faculty_id == faculty_id)
     if class_section_id:
@@ -113,3 +142,28 @@ def activate_version(
     version.is_active = True
     db.commit()
     return {"success": True, "message": f"Timetable version '{version.name}' is now active."}
+
+@router.get("/template/csv")
+def download_timetable_template_csv():
+    import io
+    from fastapi.responses import Response
+    import pandas as pd
+
+    sample_data = [
+        {"Faculty": "Prof. Arun Kumar", "Faculty Code": "FAC-008", "Class": "CSE-A", "Subject": "Data Structures & Algorithms", "Subject Code": "CS101", "Day": "Monday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 101"},
+        {"Faculty": "Prof. Priya Nair", "Faculty Code": "FAC-009", "Class": "CSE-B", "Subject": "Operating Systems", "Subject Code": "CS102", "Day": "Monday", "Start Time": "10:00", "End Time": "11:00", "Room": "Hall 102"},
+        {"Faculty": "Prof. Mohammad Ahmed", "Faculty Code": "FAC-010", "Class": "CSE-C", "Subject": "Database Management Systems", "Subject Code": "CS103", "Day": "Tuesday", "Start Time": "11:15", "End Time": "12:15", "Room": "Hall 103"},
+        {"Faculty": "Prof. Manoj Verma", "Faculty Code": "FAC-011", "Class": "ECE-A", "Subject": "Digital Signal Processing", "Subject Code": "EC201", "Day": "Wednesday", "Start Time": "13:15", "End Time": "14:15", "Room": "Lab 201"},
+        {"Faculty": "Prof. Divya Krishnan", "Faculty Code": "FAC-012", "Class": "ECE-B", "Subject": "VLSI Design & Technology", "Subject Code": "EC202", "Day": "Thursday", "Start Time": "14:15", "End Time": "15:15", "Room": "Lab 202"},
+        {"Faculty": "Prof. Sanjay Mehta", "Faculty Code": "FAC-013", "Class": "MECH-A", "Subject": "Engineering Thermodynamics", "Subject Code": "ME301", "Day": "Friday", "Start Time": "09:00", "End Time": "10:00", "Room": "Hall 301"},
+        {"Faculty": "Prof. Kavita Reddy", "Faculty Code": "FAC-014", "Class": "MECH-B", "Subject": "Calculus & Linear Algebra", "Subject Code": "MA101", "Day": "Saturday", "Start Time": "10:00", "End Time": "11:00", "Room": "Hall 302"}
+    ]
+    df = pd.DataFrame(sample_data)
+    stream = io.StringIO()
+    df.to_csv(stream, index=False)
+
+    return Response(
+        content=stream.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=apollo_timetable_template.csv"}
+    )

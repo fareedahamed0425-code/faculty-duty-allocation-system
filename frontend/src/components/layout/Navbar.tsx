@@ -51,28 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       setNotifications(res.data);
       setUnreadCount(res.data.filter(n => !n.is_read).length);
     } catch {
-      setNotifications([
-        {
-          id: 1,
-          user_id: user?.id || 1,
-          title: '📋 Exam Duty Allotted',
-          message: 'Mid-Term Examination 2026. Reporting: 08:30 AM | Venue: Exam Hall B-204',
-          notification_type: 'EXAM_DUTY_ALLOCATED',
-          is_read: false,
-          metadata_json: {
-            duty_id: 1,
-            exam_name: 'Mid-Term Examination 2026',
-            course_name: 'CS301 - Operating Systems',
-            reporting_time: '08:30 AM',
-            exam_start_time: '09:00 AM',
-            exam_end_time: '12:00 PM',
-            venue: 'Exam Hall B-204',
-            role_type: 'Room Invigilator'
-          },
-          created_at: new Date().toISOString(),
-        }
-      ]);
-      setUnreadCount(1);
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 

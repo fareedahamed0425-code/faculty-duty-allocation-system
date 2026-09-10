@@ -3,11 +3,12 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.models.entities import (
     Absence, Faculty, TimetableVersion, TimetableEntry,
-    SubstitutionRequirement, SubstitutionDuty, AuditLog, Notification
+    SubstitutionRequirement, SubstitutionDuty, AuditLog, Notification, User
 )
 from app.allocation.constraints import time_overlaps, get_week_bounds
 from app.allocation.engine import generate_allocation
 from app.allocation.multi_allocator import batch_allocate_requirements
+
 
 def create_faculty_absence(
     db: Session,
@@ -134,6 +135,50 @@ def create_faculty_absence(
         )
         allocation_results = batch_res["results"]
 
+    # Notify the faculty member whose absence was recorded
+    target_user = None
+    if faculty.user_id:
+        target_user = db.query(User).filter(User.id == faculty.user_id).first()
+    if not target_user and faculty.email:
+        target_user = db.query(User).filter(User.email == faculty.email).first()
+
+    if target_user:
+        alloc_cnt = sum(1 for r in created_requirements if r.status == "ALLOCATED")
+        tot_cnt = len(created_requirements)
+        date_str = str(absence_date) if final_end_date == absence_date else f"{absence_date} to {final_end_date}"
+        notif_msg = (
+            f"Your absence for {date_str} has been registered. "
+            f"{alloc_cnt} of {tot_cnt} affected class(es) have been successfully allocated to substitute faculty."
+            if tot_cnt > 0 else
+            f"Your absence for {date_str} has been registered. No timetable classes were scheduled for this duration."
+        )
+        notif = Notification(
+            user_id=target_user.id,
+            title=f"📅 Absence Registered ({leave_type})",
+            message=notif_msg,
+            notification_type="LEAVE_APPLIED",
+            metadata_json={
+                "absence_id": absence.id,
+                "from_date": str(absence_date),
+                "to_date": str(final_end_date),
+                "affected_classes_count": tot_cnt,
+                "allocated_count": alloc_cnt
+            }
+        )
+        db.add(notif)
+        db.commit()
+
+    requirements_summary: List[Dict[str, Any]] = []
+    for req in created_requirements:
+        requirements_summary.append({
+            "id": req.id,
+            "date": str(req.date),
+            "class_name": req.class_section.name if req.class_section else "",
+            "subject_name": req.subject.name if req.subject else "",
+            "period": f"{req.period_start}-{req.period_end}",
+            "status": req.status
+        })
+
     return {
         "success": True,
         "absence_id": absence.id,
@@ -142,19 +187,10 @@ def create_faculty_absence(
         "to_date": str(final_end_date),
         "leave_type": leave_type,
         "affected_classes_count": len(created_requirements),
-        "requirements": [
-            {
-                "id": r.id,
-                "date": str(r.date),
-                "class_name": r.class_section.name if r.class_section else "",
-                "subject_name": r.subject.name if r.subject else "",
-                "period": f"{r.period_start}-{r.period_end}",
-                "status": r.status
-            }
-            for r in created_requirements
-        ],
+        "requirements": requirements_summary,
         "allocation_results": allocation_results
     }
+
 
 def cancel_faculty_absence(
     db: Session,
@@ -170,24 +206,61 @@ def cancel_faculty_absence(
         return {"success": False, "error": f"Absence #{absence_id} not found."}
 
     absence.status = "CANCELLED"
-    
+
     # Cancel requirements and duties
     for req in absence.requirements:
         req.status = "CANCELLED"
         if req.duty:
             req.duty.status = "CANCELLED"
-            # Notify assigned faculty
-            if req.duty.assigned_faculty and req.duty.assigned_faculty.user_id:
+            # Notify assigned substitute faculty
+            sub_fac = req.duty.assigned_faculty
+            sub_user = None
+            if sub_fac:
+                if sub_fac.user_id:
+                    sub_user = db.query(User).filter(User.id == sub_fac.user_id).first()
+                if not sub_user and sub_fac.email:
+                    sub_user = db.query(User).filter(User.email == sub_fac.email).first()
+
+            if sub_user:
                 notif = Notification(
-                    user_id=req.duty.assigned_faculty.user_id,
+                    user_id=sub_user.id,
                     title=f"Substitution Cancelled: {req.class_section.name}",
                     message=(
                         f"Your substitution duty for {req.class_section.name} on {req.date} "
-                        f"({req.period_start}-{req.period_end}) has been cancelled as the original faculty is now available."
+                        f"({req.period_start}-{req.period_end}) has been cancelled as the regular faculty (Prof. {absence.faculty.name}) is marked Present."
                     ),
-                    notification_type="SUBSTITUTION_CANCELLED"
+                    notification_type="SUBSTITUTION_CANCELLED",
+                    metadata_json={
+                        "duty_id": req.duty.id,
+                        "date": str(req.date),
+                        "period_start": req.period_start,
+                        "period_end": req.period_end,
+                        "class_name": req.class_section.name if req.class_section else ""
+                    }
                 )
                 db.add(notif)
+
+    # Also notify the regular faculty member who is now marked PRESENT
+    if absence.faculty:
+        reg_user = None
+        if absence.faculty.user_id:
+            reg_user = db.query(User).filter(User.id == absence.faculty.user_id).first()
+        if not reg_user and absence.faculty.email:
+            reg_user = db.query(User).filter(User.email == absence.faculty.email).first()
+
+        if reg_user:
+            notif = Notification(
+                user_id=reg_user.id,
+                title="✓ Marked Present: Timetable Restored",
+                message=f"You are now marked PRESENT for {absence.date}. Any temporary substitution duties scheduled in relief have been cancelled.",
+                notification_type="ATTENDANCE_UPDATE",
+                metadata_json={
+                    "absence_id": absence.id,
+                    "date": str(absence.date),
+                    "status": "PRESENT"
+                }
+            )
+            db.add(notif)
 
     audit = AuditLog(
         event_type="ABSENCE_CANCELLED",
@@ -204,3 +277,4 @@ def cancel_faculty_absence(
     db.commit()
 
     return {"success": True, "message": f"Absence #{absence_id} and associated duties have been cancelled."}
+

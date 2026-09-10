@@ -5,6 +5,7 @@ import { DashboardStats, SubstitutionRequirement, Faculty, CheckDateResult, User
 import { StatCard } from '../components/common/StatCard';
 import { Modal } from '../components/common/Modal';
 import { AllocationReasoningModal } from '../components/allocation/AllocationReasoningModal';
+import { ExamTimetableUploadWizard } from '../components/exam/ExamTimetableUploadWizard';
 import {
   Users,
   UserX,
@@ -22,7 +23,9 @@ import {
   ShieldCheck,
   Building2,
   Mail,
-  UserPlus
+  UserPlus,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -58,7 +61,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
 
   // Exam Duty Modal State
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [isBatchExamModalOpen, setIsBatchExamModalOpen] = useState(false);
+  const [examAllocationMode, setExamAllocationMode] = useState<'dynamic' | 'manual'>('dynamic');
   const [examFacultyId, setExamFacultyId] = useState<number | ''>('');
+  const [requiredInvigilators, setRequiredInvigilators] = useState<number>(1);
+  const [examDeptId, setExamDeptId] = useState<number | ''>('');
+  const [strictTimetableCheck, setStrictTimetableCheck] = useState<boolean>(true);
   const [examName, setExamName] = useState('Mid-Term Examination 2026');
   const [courseName, setCourseName] = useState('CS301 - Operating Systems');
   const [examDate, setExamDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -69,6 +77,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
   const [examRole, setExamRole] = useState('Room Invigilator');
   const [isSubmittingExam, setIsSubmittingExam] = useState(false);
   const [examSuccessMsg, setExamSuccessMsg] = useState<string | null>(null);
+  const [dynamicResult, setDynamicResult] = useState<any | null>(null);
 
   // Calendar Check for selected date
   const [dateCheck, setDateCheck] = useState<CheckDateResult | null>(null);
@@ -83,7 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         apiClient.get<DashboardStats>('/reports/dashboard'),
         apiClient.get<any[]>('/substitutions/duties'),
         apiClient.get<Faculty[]>('/faculty'),
-        apiClient.get<User[]>('/users'),
+        apiClient.get<User[]>('/auth/users'),
       ]);
       setStats(statsRes.data);
       setRecentDuties(dutiesRes.data.slice(0, 6));
@@ -227,6 +236,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           >
             <FileText className="w-4 h-4 text-[#0e3b4b]" />
             <span>Allocate Exam Duty</span>
+          </button>
+          <button
+            onClick={() => setIsBatchExamModalOpen(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-white" />
+            <span>Upload Exam Timetable</span>
           </button>
           <button
             onClick={() => setIsAbsenceModalOpen(true)}
@@ -705,11 +721,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       <Modal
         isOpen={isExamModalOpen}
         onClose={() => setIsExamModalOpen(false)}
-        title="Allocate Exam Duty & Invigilation"
-        subtitle="Scheduled faculty will receive interactive notification cards with reporting time, exam time, and venue."
-        maxWidth="lg"
+        title="Dynamic Exam Duty & Invigilation Center"
+        subtitle="Dynamically balance exam invigilation across faculty or perform specific manual assignments with unified notifications."
+        maxWidth="2xl"
       >
         <form onSubmit={handleAllocateExamDuty} className="space-y-4">
+          {/* Mode Selector Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setExamAllocationMode('dynamic')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                examAllocationMode === 'dynamic'
+                  ? 'bg-white text-[#0e3b4b] shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              ⚡ Dynamic Smart Allocation (Auto-Balance)
+            </button>
+            <button
+              type="button"
+              onClick={() => setExamAllocationMode('manual')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                examAllocationMode === 'manual'
+                  ? 'bg-white text-[#0e3b4b] shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              👤 Manual Faculty Assignment
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -823,28 +865,98 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Assign Faculty Member (Faculty / Dean / PC / Member)
-            </label>
-            <select
-              value={examFacultyId}
-              onChange={(e) => setExamFacultyId(Number(e.target.value) || '')}
-              className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
-              required
-            >
-              <option value="">-- Choose Faculty Invigilator --</option>
-              {facultyList.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name} ({f.faculty_id}) - {f.designation} [{f.department_name}]
-                </option>
-              ))}
-            </select>
-          </div>
+          {examAllocationMode === 'dynamic' ? (
+            <div className="p-4 bg-sky-50/60 rounded-2xl border border-sky-200 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-sky-900 uppercase tracking-wider mb-1">
+                    Invigilators Required Count
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={requiredInvigilators}
+                    onChange={(e) => setRequiredInvigilators(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full text-xs rounded-xl border border-sky-300 p-2.5 bg-white text-sky-950 font-bold focus:ring-2 focus:ring-sky-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-sky-900 uppercase tracking-wider mb-1">
+                    Department Filter (Optional)
+                  </label>
+                  <select
+                    value={examDeptId}
+                    onChange={(e) => setExamDeptId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full text-xs rounded-xl border border-sky-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-sky-500 font-medium"
+                  >
+                    <option value="">All Departments</option>
+                    <option value="1">Computer Science & Engineering</option>
+                    <option value="2">Electronics & Communication</option>
+                    <option value="3">Mechanical Engineering</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="strict-tt-check"
+                  checked={strictTimetableCheck}
+                  onChange={(e) => setStrictTimetableCheck(e.target.checked)}
+                  className="rounded text-brand-600 focus:ring-brand-500"
+                />
+                <label htmlFor="strict-tt-check" className="text-xs text-sky-900 font-semibold cursor-pointer">
+                  Auto-exclude faculty with regular timetable classes during exam slot
+                </label>
+              </div>
+
+              <p className="text-[11px] text-sky-700 italic">
+                * Dynamic engine evaluates: Absence/Leave records, Exam overlaps, Timetable collisions, and prioritizes faculty with the lowest cumulative duty count for fair balancing.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Assign Faculty Member (Faculty / Dean / PC / Member)
+              </label>
+              <select
+                value={examFacultyId}
+                onChange={(e) => setExamFacultyId(Number(e.target.value) || '')}
+                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-[#2582a1] focus:outline-hidden font-medium"
+                required={examAllocationMode === 'manual'}
+              >
+                <option value="">-- Choose Faculty Invigilator --</option>
+                {facultyList.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} ({f.faculty_id}) - {f.designation} [{f.department_name}]
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {examSuccessMsg && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium">
               {examSuccessMsg}
+            </div>
+          )}
+
+          {dynamicResult && dynamicResult.evaluations && dynamicResult.evaluations.length > 0 && (
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-40 overflow-y-auto space-y-1 text-xs">
+              <span className="font-bold text-slate-800 block mb-1">Candidate Evaluation Breakdown:</span>
+              {dynamicResult.evaluations.map((ev: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-100 last:border-0 text-[11px]">
+                  <span className="font-semibold text-slate-800">{ev.faculty_name} ({ev.faculty_code}):</span>
+                  <span className={
+                    ev.status === 'SELECTED' ? 'text-emerald-700 font-bold' :
+                    ev.status === 'AVAILABLE' ? 'text-blue-600' : 'text-rose-600'
+                  }>
+                    {ev.status === 'SELECTED' ? '✓ Allocated' : ev.reason}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 
@@ -854,14 +966,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
               onClick={() => setIsExamModalOpen(false)}
               className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
             >
-              Cancel
+              Close
             </button>
             <button
               type="submit"
               disabled={isSubmittingExam}
               className="px-5 py-2 rounded-xl bg-[#0e3b4b] hover:bg-[#165369] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
-              {isSubmittingExam ? 'Allocating Duty...' : 'Confirm & Dispatch Duty'}
+              {isSubmittingExam
+                ? 'Processing Allocation...'
+                : examAllocationMode === 'dynamic'
+                ? `⚡ Dynamically Allocate (${requiredInvigilators} Invigilators)`
+                : 'Confirm & Dispatch Duty'}
             </button>
           </div>
         </form>
@@ -872,6 +988,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         dutyId={selectedDutyId}
         isOpen={selectedDutyId !== null}
         onClose={() => setSelectedDutyId(null)}
+      />
+
+      {/* Batch Exam Timetable Import Modal */}
+      <ExamTimetableUploadWizard
+        isOpen={isBatchExamModalOpen}
+        onClose={() => setIsBatchExamModalOpen(false)}
+        onSuccess={() => fetchDashboardData()}
       />
     </div>
   );

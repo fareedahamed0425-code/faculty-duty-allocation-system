@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal
-from app.models.entities import Role
+from app.models.entities import Role, Faculty
 from app.seed.seed_data import seed_database
 from app.api.v1 import api_router
 
@@ -13,8 +13,8 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
-            if db.query(Role).count() == 0:
-                seed_database(db)
+            if db.query(Role).count() == 0 or db.query(Faculty).count() <= 1:
+                seed_database(db, include_demo_data=True)
         finally:
             db.close()
     except Exception as e:

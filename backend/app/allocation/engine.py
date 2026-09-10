@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from sqlalchemy.orm import Session
 from app.models.entities import (
     Faculty, TimetableVersion, TimetableEntry, SubstitutionRequirement,
-    SubstitutionDuty, Absence, AuditLog, Notification, ClassSection, Subject
+    SubstitutionDuty, Absence, AuditLog, Notification, ClassSection, Subject, User
 )
 from app.allocation.constraints import (
     check_rule_1_free_period,
@@ -279,13 +279,20 @@ def generate_allocation(
     db.add(audit)
 
     # In-app Notification for assigned faculty if user account exists
+    assigned_user = None
     if selected_faculty.user_id:
+        assigned_user = db.query(User).filter(User.id == selected_faculty.user_id).first()
+    if not assigned_user and selected_faculty.email:
+        assigned_user = db.query(User).filter(User.email == selected_faculty.email).first()
+
+    if assigned_user:
         notif = Notification(
-            user_id=selected_faculty.user_id,
-            title=f"Substitution Duty Assigned: {target_class.name}",
+            user_id=assigned_user.id,
+            title=f"📋 Substitution Duty Assigned: {target_class.name}",
             message=(
-                f"You have been allocated a substitution class for {target_class.name} "
-                f"({target_subject.name}) on {requirement.date} from {requirement.period_start} to {requirement.period_end}."
+                f"Dear Prof. {selected_faculty.name}, you have been assigned substitution duty for {target_class.name} "
+                f"({target_subject.name} - {target_subject.code}) on {requirement.date} from {requirement.period_start} to {requirement.period_end} "
+                f"in relief of Prof. {requirement.original_faculty.name}. Please report promptly."
             ),
             notification_type="SUBSTITUTION_ASSIGNED",
             metadata_json={
@@ -294,7 +301,10 @@ def generate_allocation(
                 "period_start": requirement.period_start,
                 "period_end": requirement.period_end,
                 "class_name": target_class.name,
-                "subject_code": target_subject.code
+                "subject_code": target_subject.code,
+                "subject_name": target_subject.name,
+                "original_faculty_name": requirement.original_faculty.name,
+                "assigned_faculty_name": selected_faculty.name
             }
         )
         db.add(notif)

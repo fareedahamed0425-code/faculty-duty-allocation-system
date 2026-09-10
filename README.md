@@ -90,7 +90,7 @@ The automated allocation engine solves substitution requirements using a strict 
 
 ```mermaid
 graph TD
-    A[React 19 + TypeScript Frontend] -->|REST API / JWT Auth| B[FastAPI Gateway :8081]
+    A[React 19 + TypeScript Frontend] -->|REST API / JWT Auth| B[FastAPI Gateway :8000]
     B --> C[7-Rule Deterministic Allocation Engine]
     B --> D[AI Scheduling & Operational Advisor]
     B --> E[User & Role Governance Service]
@@ -172,8 +172,8 @@ Ensure your `.env` contains your Neon PostgreSQL connection string:
 ```env
 DATABASE_URL=postgresql://neondb_owner:npg_3DRLr7fgoInb@ep-orange-violet-az5k58bf-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 SECRET_KEY=institution_scheduling_secret_jwt_key_2026_production_grade
-PORT=8081
-VITE_API_URL=http://localhost:8081/api/v1
+PORT=8000
+VITE_API_URL=http://localhost:8000/api/v1
 ```
 
 ---
@@ -197,7 +197,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-uvicorn app.main:app --port 8081 --reload
+uvicorn app.main:app --port 8000 --reload
 ```
 
 **Start Frontend (Terminal 2):**
@@ -207,9 +207,9 @@ npm install
 npm run dev
 ```
 
-* **Frontend Application:** `http://localhost:5173`
-* **FastAPI Interactive Swagger Docs:** `http://localhost:8081/docs`
-* **API Health Check:** `http://localhost:8081/api/v1/health`
+* **Frontend Application:** `http://localhost:3000`
+* **FastAPI Interactive Swagger Docs:** `http://localhost:8000/docs`
+* **API Health Check:** `http://localhost:8000/api/v1/health`
 
 ---
 

@@ -37,6 +37,11 @@ class User(Base):
     faculty_profile = relationship("Faculty", back_populates="user", uselist=False)
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
+    @property
+    def faculty_id(self):
+        return self.faculty_profile.id if self.faculty_profile else None
+
+
 
 class Department(Base):
     __tablename__ = "departments"

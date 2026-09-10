@@ -129,6 +129,11 @@ export const FacultyPortal: React.FC = () => {
     (d) => d.date === todayDateStr && (d.assigned_faculty_id === user?.faculty_id || !user?.faculty_id)
   );
 
+  // Today's exam duties assigned to me
+  const todayExamDuties = examDuties.filter(
+    (ed: ExamDuty) => ed.date === todayDateStr && ed.status !== 'CANCELLED'
+  );
+
   // My substitutions this week count
   const myWeeklySubstitutionsCount = duties.filter(
     (d) => d.assigned_faculty_id === user?.faculty_id
@@ -273,13 +278,13 @@ export const FacultyPortal: React.FC = () => {
         {/* Today's Assigned Substitutions Card */}
         <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-subtle sm:col-span-1">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Substitutions</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Substitutions & Exams</span>
             <Clock className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-4xl font-extrabold text-emerald-700">{todaySubstitutions.length}</p>
-          <p className="text-xs text-slate-500 mt-1">Covering for absent colleagues</p>
+          <p className="text-4xl font-extrabold text-emerald-700">{todaySubstitutions.length + todayExamDuties.length}</p>
+          <p className="text-xs text-slate-500 mt-1">Substitutions + Exam Duties</p>
           <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-emerald-700 font-medium">
-            {todaySubstitutions.length > 0 ? 'Upcoming duty scheduled today' : 'No substitution classes scheduled today'}
+            {todaySubstitutions.length + todayExamDuties.length > 0 ? 'Upcoming duty scheduled today' : 'No substitution/exam duties scheduled today'}
           </div>
         </div>
       </div>
@@ -373,13 +378,13 @@ export const FacultyPortal: React.FC = () => {
         )}
       </div>
 
-      {/* Combined Today's Timeline (Regular Classes + Substitutions) */}
+      {/* Combined Today's Timeline (Regular Classes + Substitutions + Exam Duties) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-subtle">
-        <h3 className="text-sm font-bold text-slate-900 mb-4">Today's Integrated Teaching Timeline</h3>
+        <h3 className="text-sm font-bold text-slate-900 mb-4">Today's Integrated Teaching & Exam Timeline</h3>
 
-        {todayRegularClasses.length === 0 && todaySubstitutions.length === 0 ? (
+        {todayRegularClasses.length === 0 && todaySubstitutions.length === 0 && todayExamDuties.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400">
-            No regular classes or substitution duties scheduled for today.
+            No regular classes, substitution duties, or exam invigilations scheduled for today.
           </div>
         ) : (
           <div className="space-y-3">
@@ -422,6 +427,29 @@ export const FacultyPortal: React.FC = () => {
                   <span className="font-bold text-emerald-900 text-sm block">{sub.period_start} - {sub.period_end}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-extrabold">
                     Substitution Duty
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {todayExamDuties.map((ed) => (
+              <div
+                key={`exam-${ed.id}`}
+                className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 flex items-center justify-between text-xs hover:bg-amber-50 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-2.5 h-10 rounded-full bg-amber-600" />
+                  <div>
+                    <span className="font-bold text-amber-900 text-sm block">{ed.exam_name} • {ed.venue}</span>
+                    <span className="text-amber-800 text-[11px]">
+                      {ed.role_type} • Report at {ed.reporting_time}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-amber-900 text-sm block">{ed.exam_start_time} - {ed.exam_end_time}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold">
+                    Exam Duty
                   </span>
                 </div>
               </div>

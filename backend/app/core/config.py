@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     
     # AI - NVIDIA Nemotron Integration
     NVIDIA_API_KEY: Optional[str] = os.getenv("NVIDIA_API_KEY", "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")
-    NVIDIA_MODEL: str = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
+    NVIDIA_MODEL: str = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-ultra-550b-a55b")
     NVIDIA_INVOKE_URL: str = os.getenv("NVIDIA_INVOKE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
     
     # CORS

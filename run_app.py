@@ -16,15 +16,15 @@ def main():
     print("  FACULTY SUBSTITUTION & DUTY ALLOCATION SYSTEM")
     print("  The Apollo University")
     print("==================================================================")
-    print("1. Starting FastAPI Backend on http://localhost:8081...")
+    print("1. Starting FastAPI Backend on http://localhost:8000...")
     backend_process = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081", "--reload"],
+        [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
         cwd=backend_dir
     )
 
     time.sleep(2)
 
-    print("2. Starting Vite React Frontend on http://localhost:5173...")
+    print("2. Starting Vite React Frontend on http://localhost:3000...")
     frontend_process = subprocess.Popen(
         ["npm", "run", "dev"],
         cwd=frontend_dir,
@@ -33,9 +33,9 @@ def main():
 
     print("\n------------------------------------------------------------------")
     print("  System is running!")
-    print("  • Frontend: http://localhost:5173")
-    print("  • Backend API: http://localhost:8081/api/v1")
-    print("  • Swagger Docs: http://localhost:8081/docs")
+    print("  • Frontend: http://localhost:3000")
+    print("  • Backend API: http://localhost:8000/api/v1")
+    print("  • Swagger Docs: http://localhost:8000/docs")
     print("------------------------------------------------------------------")
     print("Press Ctrl+C to terminate both servers.\n")
 
