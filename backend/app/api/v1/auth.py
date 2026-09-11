@@ -1,15 +1,21 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.security import verify_password, create_access_token
+
 from app.models.entities import User, Role, Faculty
 from app.schemas.schemas import Token, LoginRequest, UserOut
 from app.api.deps import get_current_user
+from app.services.ai_faculty_extractor import sync_user_faculty_linkage
 
 router = APIRouter()
 
-def user_to_user_out(user: User) -> UserOut:
+def user_to_user_out(user: User, db: Optional[Session] = None) -> UserOut:
+    if db and not user.faculty_profile:
+        sync_user_faculty_linkage(db, user)
+
     faculty_id = None
     faculty_code = None
     department_name = None
@@ -45,11 +51,14 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user account.")
 
+    # Auto-sync with pre-uploaded faculty roster
+    sync_user_faculty_linkage(db, user)
+
     access_token = create_access_token(
         subject=user.id,
         extra_claims={"email": user.email, "role": user.role.name if user.role else "USER"}
     )
-    return Token(access_token=access_token, user=user_to_user_out(user))
+    return Token(access_token=access_token, user=user_to_user_out(user, db))
 
 @router.post("/json-login", response_model=Token)
 def json_login(
@@ -65,15 +74,22 @@ def json_login(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user account.")
 
+    # Auto-sync with pre-uploaded faculty roster
+    sync_user_faculty_linkage(db, user)
+
     access_token = create_access_token(
         subject=user.id,
         extra_claims={"email": user.email, "role": user.role.name if user.role else "USER"}
     )
-    return Token(access_token=access_token, user=user_to_user_out(user))
+    return Token(access_token=access_token, user=user_to_user_out(user, db))
 
 @router.get("/me", response_model=UserOut)
-def get_me(current_user: User = Depends(get_current_user)):
-    return user_to_user_out(current_user)
+def get_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return user_to_user_out(current_user, db)
+
 
 @router.post("/demo-switch/{role_name}", response_model=Token)
 def demo_switch_role(

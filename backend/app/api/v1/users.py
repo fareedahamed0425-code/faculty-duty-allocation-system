@@ -373,6 +373,8 @@ def delete_user(
     db.commit()
     return {"status": "success", "message": f"User {user_name} ({user_email}) has been deleted."}
 
+from app.services.ai_faculty_extractor import sync_user_faculty_linkage, clean_name_string
+
 @router.post("/sync-firebase", response_model=Token)
 def sync_firebase_user(
     payload: FirebaseSyncRequest,
@@ -380,6 +382,7 @@ def sync_firebase_user(
 ):
     """
     Synchronizes or enrolls a Firebase user into the backend database.
+    Auto-links to pre-uploaded faculty profiles by email or clean full name.
     """
     clean_email = payload.email.strip().lower()
     user = db.query(User).filter(User.email == clean_email).first()
@@ -412,12 +415,10 @@ def sync_firebase_user(
         db.add(user)
         db.flush()
 
-        # Check if faculty with this email already exists
-        existing_faculty = db.query(Faculty).filter(Faculty.email == clean_email).first()
-        if existing_faculty:
-            existing_faculty.user_id = user.id
-            existing_faculty.role_id = role.id if role else existing_faculty.role_id
-        else:
+        # Try linking with pre-uploaded faculty profile
+        linked_faculty = sync_user_faculty_linkage(db, user)
+
+        if not linked_faculty:
             default_dept = db.query(Department).first()
             is_leadership = role and role.name in ["ADMIN", "DEAN", "HOD", "PC", "COMMITTEE_MEMBER"]
             fac_code = f"FAC-{user.id:03d}"
@@ -441,6 +442,9 @@ def sync_firebase_user(
 
         db.commit()
         db.refresh(user)
+    else:
+        # Existing user - ensure faculty profile linkage is synced
+        sync_user_faculty_linkage(db, user)
 
     # Create backend session token
     access_token = create_access_token(
@@ -448,3 +452,4 @@ def sync_firebase_user(
         extra_claims={"email": user.email, "role": user.role.name if user.role else "USER"}
     )
     return Token(access_token=access_token, user=user_to_user_out(user))
+

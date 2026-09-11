@@ -213,22 +213,16 @@ npm run dev
 
 ---
 
-## 🔑 Institutional Seed Credentials
+## 🔑 Institutional Administrator Credentials
 
-All seeded test accounts use the default password: **`Apollo@2026`**
+Initial default login credentials:
 
-| Role | Email | Designation | Department |
+| Role | Email | Password | Access Level |
 | :--- | :--- | :--- | :--- |
-| **⚙️ ADMIN** | `admin@apollouniversity.edu.in` | System Administrator | CSE |
-| **👑 DEAN** | `dean.academics@apollouniversity.edu.in` | Dean of Academic Affairs | CSE |
-| **📋 PC** | `pc.cse@apollouniversity.edu.in` | Program Coordinator (B.Tech) | CSE |
-| **🛡️ INTERNAL_MEMBERS** | `kv.prasad@apollouniversity.edu.in` | Internal Committee Member | AIDS |
-| **👨‍🏫 FACULTY** | `arun.kumar@apollouniversity.edu.in` | Assistant Professor | CSE |
-| **👨‍🏫 FACULTY** | `priya.nair@apollouniversity.edu.in` | Associate Professor | AIML |
-| **👨‍🏫 FACULTY** | `m.ahmed@apollouniversity.edu.in` | Assistant Professor | CS |
-| **👨‍🏫 FACULTY** | `manoj.verma@apollouniversity.edu.in` | Assistant Professor | CC |
-| **👨‍🏫 FACULTY** | `k.suresh@apollouniversity.edu.in` | Assistant Professor | AIHC |
-| **👥 ADDITIONAL_MEMBERS** | `deepa.n@apollouniversity.edu.in` | Additional Faculty Member | AIDS |
+| **⚙️ ADMIN** | `admin@apollouniversity.edu.in` | `Apollo@2026` | Full System & Governance Access |
+
+> **Note:** All mock faculty and test users have been wiped. You can register new real faculty and assign roles directly via the **User Management** & **Faculty Directory** portals in the Admin dashboard.
+
 
 ---
 

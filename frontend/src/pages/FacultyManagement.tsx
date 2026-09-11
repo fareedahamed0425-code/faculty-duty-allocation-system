@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import { Faculty, Department } from '../types';
 import { Modal } from '../components/common/Modal';
+import { FacultyUploadWizard } from '../components/faculty/FacultyUploadWizard';
 import {
   Search,
   Plus,
-  Edit2
+  Edit2,
+  Sparkles,
+  UploadCloud,
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 
 export const FacultyManagement: React.FC = () => {
@@ -19,6 +24,7 @@ export const FacultyManagement: React.FC = () => {
   // Edit / Add Modal State
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isUploadWizardOpen, setIsUploadWizardOpen] = useState<boolean>(false);
   const [formData, setFormData] = useState<any>({
     name: '',
     email: '',
@@ -156,12 +162,44 @@ export const FacultyManagement: React.FC = () => {
             Manage institutional teaching faculty, configurable exemption status, and substitution eligibility.
           </p>
         </div>
+        <div className="flex items-center space-x-2.5 shrink-0">
+          <button
+            onClick={() => setIsUploadWizardOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-[#f0f9fb] hover:bg-[#e0f4f9] text-[#2582a1] border border-[#bee3ee] text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-[#2582a1]" />
+            <span>Upload Faculty List (AI)</span>
+          </button>
+          <button
+            onClick={handleOpenAdd}
+            className="px-4 py-2.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Faculty</span>
+          </button>
+        </div>
+      </div>
+
+      {/* AI Upload & Auto-Sync Notice Banner */}
+      <div className="bg-gradient-to-r from-[#f0f9fb] via-[#e8f6f9] to-[#f0f9fb] border border-[#bee3ee] p-4 rounded-2xl flex items-center justify-between shadow-2xs gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-[#2582a1]/15 text-[#2582a1] flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs font-extrabold text-[#0e3b4b]">
+              AI Bulk Faculty Onboarding & Automatic Account Sync
+            </h4>
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Upload spreadsheets or documents of your faculty roster. When teachers register or sign in with their name or credentials, their accounts will automatically sync with their pre-loaded profile and allocations.
+            </p>
+          </div>
+        </div>
         <button
-          onClick={handleOpenAdd}
-          className="px-4 py-2.5 rounded-xl bg-[#2582a1] hover:bg-[#1c6b86] text-white text-xs font-bold shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer shrink-0"
+          onClick={() => setIsUploadWizardOpen(true)}
+          className="px-3.5 py-1.5 rounded-xl bg-white border border-[#2582a1]/30 hover:border-[#2582a1] text-[#2582a1] text-xs font-bold shadow-2xs transition-colors whitespace-nowrap cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add New Faculty</span>
+          Upload Roster
         </button>
       </div>
 
@@ -177,6 +215,7 @@ export const FacultyManagement: React.FC = () => {
             className="w-full text-xs rounded-xl border border-slate-300 pl-9 pr-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#2582a1]"
           />
         </div>
+
         <select
           value={deptFilter}
           onChange={(e) => setDeptFilter(e.target.value)}
@@ -401,6 +440,14 @@ export const FacultyManagement: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* AI Faculty Upload & Sync Wizard */}
+      <FacultyUploadWizard
+        isOpen={isUploadWizardOpen}
+        onClose={() => setIsUploadWizardOpen(false)}
+        onSuccess={fetchFaculty}
+      />
     </div>
   );
 };
+

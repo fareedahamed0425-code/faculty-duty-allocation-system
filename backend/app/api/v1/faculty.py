@@ -1,12 +1,18 @@
 from datetime import date
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.entities import Faculty, Department, Role, TimetableVersion, TimetableEntry, SubstitutionDuty
 from app.schemas.schemas import FacultyOut, FacultyCreate, FacultyUpdate, DepartmentOut
 from app.api.deps import get_current_user, require_admin
 from app.allocation.constraints import get_week_bounds
+from app.services.ai_faculty_extractor import (
+    preview_faculty_import,
+    commit_faculty_import,
+    generate_faculty_template_csv
+)
 
 router = APIRouter()
 
@@ -81,6 +87,54 @@ def list_faculty(
 def list_departments(db: Session = Depends(get_db)):
     return db.query(Department).order_by(Department.code.asc()).all()
 
+@router.get("/template/csv")
+def download_faculty_template_csv():
+    """
+    Returns downloadable CSV template for faculty roster uploads.
+    """
+    csv_content = generate_faculty_template_csv()
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=faculty_roster_template.csv"}
+    )
+
+@router.post("/upload-ai/preview")
+async def preview_faculty_upload(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin_user = Depends(require_admin)
+):
+    """
+    Upload a faculty list file (Excel, CSV, TXT). Uses NVIDIA Nemotron AI with heuristic fallback
+    to extract faculty, resolve departments/roles, and return structured preview before committing.
+    """
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    result = preview_faculty_import(db, file_bytes, file.filename or "faculty_list.csv")
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return result
+
+@router.post("/upload-ai/commit")
+def commit_faculty_upload(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    admin_user = Depends(require_admin)
+):
+    """
+    Commits validated faculty list to the database, auto-linking existing user accounts.
+    """
+    faculty_entries = payload.get("faculty_entries", [])
+    if not faculty_entries:
+        raise HTTPException(status_code=400, detail="No faculty entries provided for commit.")
+
+    result = commit_faculty_import(db, faculty_entries)
+    return result
+
 @router.get("/{faculty_id}", response_model=FacultyOut)
 def get_faculty_detail(
     faculty_id: int,
@@ -128,3 +182,4 @@ def create_faculty(
     db.commit()
     db.refresh(faculty)
     return enrich_faculty_out(faculty, db)
+
